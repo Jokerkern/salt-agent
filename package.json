@@ -5,24 +5,27 @@
   "type": "module",
   "scripts": {
     "dev": "tsx --watch src/main.ts",
-    "build": "tsup src/main.ts --format esm --dts",
+    "build": "tsup src/main.ts --format esm --dts && npm run web:build",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "web:dev": "cd web && npm run dev",
-    "web:build": "cd web && npm run build"
+    "web:build": "cd web && npm run build",
+    "web:install": "cd web && npm install"
   },
   "dependencies": {
-    "openai": "^4.77.0",
-    "hono": "^4.6.14",
     "@hono/node-server": "^1.13.7",
-    "nanoid": "^5.0.9",
     "@sinclair/typebox": "^0.34.9",
+    "dotenv": "^17.2.4",
+    "hono": "^4.6.14",
+    "nanoid": "^5.0.9",
+    "openai": "^4.77.0",
     "partial-json": "^0.1.7"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
-    "tsx": "^4.19.2",
+    "tailwindcss": "^3.4.17",
     "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }

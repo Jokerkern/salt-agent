@@ -2,6 +2,16 @@
 
 ## 2026-02-09
 
+### Web UI 实现
+- ✅ React + Vite + TypeScript 前端
+- ✅ 统一的会话列表（Web + IM）
+- ✅ SSE 流式聊天界面
+- ✅ Markdown 渲染
+- ✅ 工具调用可视化展示
+- ✅ 所有会话可继续对话
+- ✅ 自动刷新会话列表
+- ✅ 生产构建和静态文件服务
+
 ### 中文化
 - ✅ 系统提示词改为中文
 - ✅ 所有工具描述改为中文
@@ -15,6 +25,8 @@
 - ✅ 所有文档移至 `docs/` 目录
   - `docs/QUICKSTART.md` - 快速启动
   - `docs/USAGE.md` - 使用文档
+  - `docs/WEB_UI.md` - Web UI 指南
+  - `docs/TEST.md` - 测试指南
   - `docs/SUMMARY.md` - 项目总结
 
 ### 当前版本特性
@@ -23,6 +35,7 @@
 - JSONL 会话持久化
 - IM Webhook 集成
 - Web Chat SSE API
+- 完整的 Web UI
 - 基础编程工具（读、写、命令）
 
 ### 示例提示词

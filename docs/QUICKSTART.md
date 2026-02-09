@@ -35,9 +35,25 @@ OpenAI API Key: ✓ Set
 Default Model: gpt-4o
 ```
 
-## 4. 测试
+## 4. 启动 Web UI（可选）
 
-### 方式一：IM Webhook 测试
+**终端 2**：
+```bash
+npm run web:dev
+```
+
+访问 `http://localhost:5173`，你会看到一个聊天界面。
+
+## 5. 测试
+
+### 方式一：Web UI 测试（推荐）
+
+在浏览器中：
+1. 点击"新建会话"
+2. 输入：`读取 package.json 文件`
+3. 观察流式响应和工具调用
+
+### 方式二：IM Webhook 测试
 
 打开 [webhook.site](https://webhook.site) 获取一个测试 webhook URL，然后：
 
@@ -59,7 +75,7 @@ curl -X POST http://localhost:3000/api/im/message \
 
 几秒钟后，webhook.site 会收到 Agent 的回复。
 
-### 方式二：SSE Chat 测试
+### 方式三：SSE Chat 测试
 
 ```bash
 # 发送消息并获取流式响应
@@ -68,7 +84,7 @@ curl -N "http://localhost:3000/api/chat/stream/test-session?message=Hello"
 
 你会看到实时的 SSE 事件流。
 
-### 方式三：查看会话
+### 方式四：查看会话
 
 ```bash
 # 列出所有会话
