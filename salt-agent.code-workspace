@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../pi-mono"
+		},
+		{
+			"path": "../openclaw"
 		}
 	],
 	"settings": {}

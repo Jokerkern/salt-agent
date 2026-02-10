@@ -1,5 +1,5 @@
+/**
+ * Re-export AI functions and types from @mariozechner/pi-ai.
+ */
+export { streamSimple } from "@mariozechner/pi-ai";
 export * from "./types.js";
-export * from "./stream.js";
-export * from "./event-stream.js";
-export * from "./openai.js";
-export * from "./utils.js";

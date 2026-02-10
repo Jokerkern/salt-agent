@@ -1,5 +1,5 @@
 import { Type } from "@sinclair/typebox";
-import type { AgentTool } from "../agent/types.js";
+import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { exec } from "child_process";
 import { promisify } from "util";
 

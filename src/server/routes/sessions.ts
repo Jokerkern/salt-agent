@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { SessionManager } from "../../session/index.js";
+import { SaltSessionManager } from "../../session/index.js";
 
-export function createSessionsRoutes(sessionManager: SessionManager) {
+export function createSessionsRoutes(sessionManager: SaltSessionManager) {
   const app = new Hono();
 
   app.get("/", async (c) => {

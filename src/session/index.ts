@@ -1,2 +1,1 @@
-export * from "./session-manager.js";
-export * from "./agent-session.js";
+export { SaltSessionManager, type SessionMetadata } from "./session-manager.js";

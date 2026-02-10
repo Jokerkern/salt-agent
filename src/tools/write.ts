@@ -1,5 +1,5 @@
 import { Type } from "@sinclair/typebox";
-import type { AgentTool } from "../agent/types.js";
+import type { AgentTool } from "@mariozechner/pi-agent-core";
 import fs from "fs/promises";
 import path from "path";
 
