@@ -18,7 +18,7 @@ export function createChatRoutes(sessionManager: SessionManager) {
 
       let sessionId = session_id;
       if (!sessionId || !(await sessionManager.sessionExists(sessionId))) {
-        sessionId = await sessionManager.createSession("web");
+        sessionId = await sessionManager.createSession("web", undefined, message);
       }
 
       return c.json({ session_id: sessionId });

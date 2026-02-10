@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getSessions } from '../lib/api';
 import type { SessionMetadata } from '../types';
 
-export function useSessions(autoRefresh = true) {
+export function useSessions(autoRefresh = true, refreshKey = 0) {
   const [sessions, setSessions] = useState<SessionMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export function useSessions(autoRefresh = true) {
       const interval = setInterval(fetchSessions, 10000);
       return () => clearInterval(interval);
     }
-  }, [autoRefresh]);
+  }, [autoRefresh, refreshKey]);
 
   return { sessions, loading, error, refresh: fetchSessions };
 }

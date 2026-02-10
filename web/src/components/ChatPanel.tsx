@@ -202,8 +202,6 @@ export function ChatPanel({ sessionId, onSessionCreated, sidebarOpen, onToggleSi
       <TopBar
         sidebarOpen={sidebarOpen}
         onToggleSidebar={onToggleSidebar}
-        sessionId={sessionId}
-        isNewSession={!!isNewSession}
         isStreaming={isStreaming}
       />
 
@@ -281,14 +279,10 @@ export function ChatPanel({ sessionId, onSessionCreated, sidebarOpen, onToggleSi
 function TopBar({
   sidebarOpen,
   onToggleSidebar,
-  sessionId,
-  isNewSession,
   isStreaming,
 }: {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
-  sessionId?: string;
-  isNewSession?: boolean;
   isStreaming?: boolean;
 }) {
   const { theme, toggle: toggleTheme } = useTheme();
@@ -303,17 +297,12 @@ function TopBar({
         {sidebarOpen ? <IconSidebarClose /> : <IconSidebar />}
       </button>
 
-      {sessionId && (
+      {isStreaming && (
         <div className="flex items-center gap-2 ml-1">
-          <span className="text-sm text-text-secondary font-medium">
-            {isNewSession ? '新会话' : `#${sessionId.slice(0, 8)}`}
+          <span className="inline-flex items-center gap-1.5 text-xs text-accent-light">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-light animate-pulse" />
+            生成中
           </span>
-          {isStreaming && (
-            <span className="inline-flex items-center gap-1.5 text-xs text-accent-light">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent-light animate-pulse" />
-              生成中
-            </span>
-          )}
         </div>
       )}
 

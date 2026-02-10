@@ -32,5 +32,21 @@ export function createSessionsRoutes(sessionManager: SessionManager) {
     }
   });
 
+  app.delete("/:id", async (c) => {
+    try {
+      const sessionId = c.req.param("id");
+      const deleted = await sessionManager.deleteSession(sessionId);
+      
+      if (!deleted) {
+        return c.json({ error: "Session not found" }, 404);
+      }
+
+      return c.json({ success: true });
+    } catch (error) {
+      console.error("Delete session error:", error);
+      return c.json({ error: "Internal server error" }, 500);
+    }
+  });
+
   return app;
 }

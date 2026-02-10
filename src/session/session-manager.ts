@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 
 export interface SessionMetadata {
   id: string;
+  title?: string;
   source: "web" | "im";
   createdAt: number;
   updatedAt: number;
@@ -18,10 +19,11 @@ export class SessionManager {
     await fs.mkdir(this.sessionsDir, { recursive: true });
   }
 
-  async createSession(source: "web" | "im", userId?: string): Promise<string> {
+  async createSession(source: "web" | "im", userId?: string, title?: string): Promise<string> {
     const id = nanoid();
     const metadata: SessionMetadata = {
       id,
+      title: title ? title.slice(0, 50).trim() : undefined,
       source,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -39,12 +41,27 @@ export class SessionManager {
     const entry = JSON.stringify({ type: "message", data: message }) + "\n";
     await fs.appendFile(sessionPath, entry, "utf-8");
     
-    // Update metadata timestamp
+    // Update metadata timestamp + auto-generate title from first user message
     const metadata = await this.getMetadata(sessionId);
     if (metadata) {
       metadata.updatedAt = Date.now();
+      if (!metadata.title && message.role === "user") {
+        metadata.title = this.extractTitle(message);
+      }
       await this.updateMetadata(sessionId, metadata);
     }
+  }
+
+  private extractTitle(message: AgentMessage): string {
+    if (Array.isArray(message.content)) {
+      const textPart = message.content.find((c: any) => c.type === "text");
+      if (textPart && "text" in textPart) {
+        return textPart.text.slice(0, 50).trim() || "新会话";
+      }
+    } else if (typeof message.content === "string") {
+      return message.content.slice(0, 50).trim() || "新会话";
+    }
+    return "新会话";
   }
 
   async getMessages(sessionId: string): Promise<AgentMessage[]> {
@@ -114,6 +131,19 @@ export class SessionManager {
     }
 
     return sessions.sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  async deleteSession(sessionId: string): Promise<boolean> {
+    const sessionPath = path.join(this.sessionsDir, `${sessionId}.jsonl`);
+    try {
+      await fs.unlink(sessionPath);
+      return true;
+    } catch (error) {
+      if ((error as any).code === "ENOENT") {
+        return false;
+      }
+      throw error;
+    }
   }
 
   async sessionExists(sessionId: string): Promise<boolean> {

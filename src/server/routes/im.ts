@@ -21,7 +21,7 @@ export function createIMRoutes(sessionManager: SessionManager) {
       // Get or create session
       let sessionId = body.session_id;
       if (!sessionId || !(await sessionManager.sessionExists(sessionId))) {
-        sessionId = await sessionManager.createSession("im", body.user_id);
+        sessionId = await sessionManager.createSession("im", body.user_id, body.message);
       }
 
       // Create agent session

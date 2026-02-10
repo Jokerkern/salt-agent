@@ -24,6 +24,11 @@ export async function sendMessage(message: string, sessionId?: string): Promise<
   return res.json();
 }
 
+export async function deleteSession(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/sessions/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 export function createSSE(sessionId: string, message: string): EventSource {
   return new EventSource(
     `${API_BASE}/api/chat/stream/${sessionId}?message=${encodeURIComponent(message)}`

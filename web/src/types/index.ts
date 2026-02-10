@@ -1,5 +1,6 @@
 export interface SessionMetadata {
   id: string;
+  title?: string;
   source: "web" | "im";
   createdAt: number;
   updatedAt: number;

@@ -7,11 +7,23 @@ import { nanoid } from 'nanoid';
 function App() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sessionRefreshKey, setSessionRefreshKey] = useState(0);
   const themeCtx = useThemeProvider();
 
   const handleNewSession = () => {
     const newId = nanoid();
     setCurrentSessionId(newId);
+  };
+
+  const handleSessionCreated = (id: string) => {
+    setCurrentSessionId(id);
+    setSessionRefreshKey((k) => k + 1);
+  };
+
+  const handleDeleteSession = (id: string) => {
+    if (currentSessionId === id) {
+      setCurrentSessionId(null);
+    }
   };
 
   return (
@@ -28,6 +40,8 @@ function App() {
               currentSessionId={currentSessionId}
               onSelectSession={setCurrentSessionId}
               onNewSession={handleNewSession}
+              onDeleteSession={handleDeleteSession}
+              refreshKey={sessionRefreshKey}
             />
           </div>
         </div>
@@ -36,7 +50,7 @@ function App() {
         <div className="flex-1 flex flex-col min-w-0">
           <ChatPanel
             sessionId={currentSessionId}
-            onSessionCreated={setCurrentSessionId}
+            onSessionCreated={handleSessionCreated}
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           />

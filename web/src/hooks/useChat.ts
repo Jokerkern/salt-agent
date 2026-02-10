@@ -8,6 +8,7 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
   const [loading, setLoading] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const currentSessionIdRef = useRef<string | null>(sessionId);
+  const skipNextLoadRef = useRef(false);
 
   // Update ref when prop changes
   useEffect(() => {
@@ -17,6 +18,11 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
   // Load session messages
   useEffect(() => {
     if (sessionId) {
+      // Skip reload when we just updated the session ID mid-stream
+      if (skipNextLoadRef.current) {
+        skipNextLoadRef.current = false;
+        return;
+      }
       setLoading(true);
       getSession(sessionId)
         .then((data) => {
@@ -53,9 +59,10 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
       const result = await sendMessage(text, currentSessionIdRef.current || undefined);
       const sid = result.session_id;
 
-      // Update session ID if it was created
-      if (!currentSessionIdRef.current && sid) {
+      // Update session ID if server returned a different one (new session)
+      if (sid && sid !== currentSessionIdRef.current) {
         currentSessionIdRef.current = sid;
+        skipNextLoadRef.current = true;
         onSessionCreated?.(sid);
       }
 
@@ -67,6 +74,9 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
 
       const handleEvent = (e: MessageEvent) => {
         const event: AgentEvent = JSON.parse(e.data);
+
+        // Skip user messages from SSE — they are already added optimistically
+        if (event.message?.role === 'user') return;
 
         switch (event.type) {
           case 'message_start':
