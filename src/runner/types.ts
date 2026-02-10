@@ -1,4 +1,5 @@
-import type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core";
+import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import type { AgentSessionEvent } from "@mariozechner/pi-coding-agent";
 
 export interface RunAgentParams {
   sessionId: string;
@@ -19,8 +20,8 @@ export interface RunAgentParams {
   timeoutMs?: number;
   /** Abort signal */
   abortSignal?: AbortSignal;
-  /** Callback for each agent event (for SSE streaming) */
-  onAgentEvent?: (event: AgentEvent) => void;
+  /** Callback for each agent session event (includes compaction/retry events) */
+  onAgentEvent?: (event: AgentSessionEvent) => void;
   /** Callback when a user message is persisted (for title update) */
   onUserMessage?: (message: AgentMessage) => void;
 }

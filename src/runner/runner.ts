@@ -6,7 +6,8 @@ import {
   AuthStorage,
   ModelRegistry,
 } from "@mariozechner/pi-coding-agent";
-import type { AgentEvent, AgentTool } from "@mariozechner/pi-agent-core";
+import type { AgentTool } from "@mariozechner/pi-agent-core";
+import type { AgentSessionEvent } from "@mariozechner/pi-coding-agent";
 import type { Model } from "@mariozechner/pi-ai";
 import { DEFAULT_TOOLS } from "../tools/index.js";
 import { setActiveRun, clearActiveRun } from "./runs.js";
@@ -105,11 +106,11 @@ export async function runAgent(params: RunAgentParams): Promise<RunAgentResult> 
   };
   setActiveRun(params.sessionId, handle);
 
-  // Subscribe to agent events and forward via callback
+  // Subscribe to AgentSession events (includes AgentEvent + compaction/retry events)
   let assistantText = "";
-  const unsubscribe = session.agent.subscribe((event: AgentEvent) => {
-    // Forward all events
-    params.onAgentEvent?.(event);
+  const unsubscribe = session.subscribe((event: AgentSessionEvent) => {
+    // Forward all events to caller
+    params.onAgentEvent?.(event as any);
 
     // Collect assistant text for IM response
     if (event.type === "message_end" && event.message.role === "assistant") {
