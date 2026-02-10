@@ -1,18 +1,23 @@
+import path from "path";
+import os from "os";
+
 /**
- * Infrastructure and credential configuration (from environment variables).
- * Runtime configuration (model, thinking, compaction, retry) is managed by SettingsManager.
+ * Get the salt-agent data directory.
+ * Priority: SALT_DATA_DIR env > ~/.salt-agent
  */
-export const config = {
-  /** Server port */
-  port: parseInt(process.env.PORT || "3000", 10),
-  /** Directory for session JSONL files */
-  sessionsDir: process.env.SESSIONS_DIR || "./sessions",
-  /** Agent config directory (settings.json, auth.json, models.json) */
-  agentDir: process.env.AGENT_DIR || ".salt-agent",
-  /** OpenAI API key */
-  openaiApiKey: process.env.OPENAI_API_KEY || "",
-  /** OpenAI base URL (for OpenAI-compatible services) */
-  openaiBaseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
-  /** Skill directories (comma-separated) */
-  skillDirs: (process.env.SKILL_DIRS || "").split(",").filter(Boolean),
-};
+export function getDataDir(): string {
+  return process.env.SALT_DATA_DIR || path.join(os.homedir(), ".salt-agent");
+}
+
+export function getSessionsDir(): string {
+  return path.join(getDataDir(), "sessions");
+}
+
+export function getSettingsPath(): string {
+  return path.join(getDataDir(), "settings.json");
+}
+
+/** Agent 工具（bash/read/write）的默认工作目录 */
+export function getWorkplaceDir(): string {
+  return path.join(getDataDir(), "workplace");
+}

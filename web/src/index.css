@@ -314,3 +314,37 @@ body {
 textarea::placeholder {
   color: rgb(var(--text-faint));
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Form Fields
+   ═══════════════════════════════════════════════════════════ */
+
+.field-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgb(var(--surface-0));
+  border: 1px solid rgba(var(--surface-4), 0.6);
+  font-size: 0.875rem;
+  color: rgb(var(--text-primary));
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.field-input::placeholder {
+  color: rgb(var(--text-faint));
+}
+
+.field-input:focus {
+  border-color: rgba(var(--accent), 0.4);
+  box-shadow: 0 0 0 1px rgba(var(--accent), 0.2);
+}
+
+.field-input:disabled {
+  opacity: 0.5;
+}
+
+select.field-input {
+  cursor: pointer;
+  appearance: auto;
+}

@@ -2,13 +2,12 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { serveStatic } from "@hono/node-server/serve-static";
-import { SaltSessionManager } from "../session/index.js";
-import type { Skill } from "../skills/index.js";
 import { createIMRoutes } from "./routes/im.js";
 import { createChatRoutes } from "./routes/chat.js";
 import { createSessionsRoutes } from "./routes/sessions.js";
+import { createSettingsRoutes } from "./routes/settings.js";
 
-export function createApp(sessionManager: SaltSessionManager, skills: Skill[] = []) {
+export function createApp() {
   const app = new Hono();
 
   app.use("*", logger());
@@ -23,13 +22,15 @@ export function createApp(sessionManager: SaltSessionManager, skills: Skill[] = 
         im: "/api/im/message",
         chat: "/api/chat/stream/:sessionId",
         sessions: "/api/sessions",
+        settings: "/api/settings",
       },
     });
   });
 
-  app.route("/api/im", createIMRoutes(sessionManager, skills));
-  app.route("/api/chat", createChatRoutes(sessionManager, skills));
-  app.route("/api/sessions", createSessionsRoutes(sessionManager));
+  app.route("/api/im", createIMRoutes());
+  app.route("/api/chat", createChatRoutes());
+  app.route("/api/sessions", createSessionsRoutes());
+  app.route("/api/settings", createSettingsRoutes());
 
   // Serve static files from web/dist (must be last)
   app.get("*", serveStatic({ root: "./web/dist" }));

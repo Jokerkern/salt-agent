@@ -6,6 +6,8 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastFailedInput, setLastFailedInput] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const currentSessionIdRef = useRef<string | null>(sessionId);
   const skipNextLoadRef = useRef(false);
@@ -46,6 +48,8 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
 
     try {
       setIsStreaming(true);
+      setError(null);
+      setLastFailedInput(null);
 
       // Add user message
       const userMsg: Message = {
@@ -114,12 +118,39 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
       es.addEventListener('turn_start', handleEvent);
       es.addEventListener('turn_end', handleEvent);
 
-      es.onerror = () => {
+      let errorHandled = false;
+      const handleError = (msg: string) => {
+        if (errorHandled) return;
+        errorHandled = true;
+        setMessages((prev) => prev.slice(0, -1));
+        setLastFailedInput(text);
+        setError(msg);
         es.close();
         setIsStreaming(false);
       };
+
+      // SSE named "error" event (has data from server)
+      es.addEventListener('error', (e: Event) => {
+        const me = e as MessageEvent;
+        if (!me.data) return; // native error, let onerror handle it
+        let errMsg = '请求失败';
+        try {
+          const data = JSON.parse(me.data);
+          errMsg = data.error || errMsg;
+        } catch { /* ignore */ }
+        handleError(errMsg);
+      });
+
+      // Native connection error (no data)
+      es.onerror = () => {
+        handleError('连接失败，请检查 API 设置');
+      };
     } catch (err) {
       console.error('Failed to send message:', err);
+      // Roll back the optimistic user message
+      setMessages((prev) => prev.slice(0, -1));
+      setLastFailedInput(text);
+      setError(err instanceof Error ? err.message : '发送失败');
       setIsStreaming(false);
     }
   };
@@ -132,5 +163,5 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
     }
   };
 
-  return { messages, isStreaming, loading, send, abort };
+  return { messages, isStreaming, loading, error, lastFailedInput, send, abort };
 }

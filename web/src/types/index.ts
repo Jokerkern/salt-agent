@@ -1,10 +1,7 @@
 export interface SessionMetadata {
   id: string;
   title?: string;
-  source: "web" | "im";
-  createdAt: number;
   updatedAt: number;
-  userId?: string;
 }
 
 export interface Message {
@@ -30,3 +27,4 @@ export interface AgentEvent {
   partialResult?: any;
   isError?: boolean;
 }
+

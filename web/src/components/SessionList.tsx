@@ -25,9 +25,6 @@ export function SessionList({ currentSessionId, onSelectSession, onNewSession, o
     }
   };
 
-  const webSessions = sessions.filter((s) => s.source === 'web');
-  const imSessions = sessions.filter((s) => s.source === 'im');
-
   return (
     <div className="flex flex-col h-full">
       {/* Brand */}
@@ -70,26 +67,12 @@ export function SessionList({ currentSessionId, onSelectSession, onNewSession, o
             <p className="text-text-faint text-xs mt-1">点击上方按钮开始</p>
           </div>
         ) : (
-          <>
-            {webSessions.length > 0 && (
-              <SessionGroup
-                title="Web"
-                sessions={webSessions}
-                currentId={currentSessionId}
-                onSelect={onSelectSession}
-                onDelete={handleDelete}
-              />
-            )}
-            {imSessions.length > 0 && (
-              <SessionGroup
-                title="IM"
-                sessions={imSessions}
-                currentId={currentSessionId}
-                onSelect={onSelectSession}
-                onDelete={handleDelete}
-              />
-            )}
-          </>
+          <SessionGroup
+            sessions={sessions}
+            currentId={currentSessionId}
+            onSelect={onSelectSession}
+            onDelete={handleDelete}
+          />
         )}
       </div>
     </div>
@@ -97,13 +80,11 @@ export function SessionList({ currentSessionId, onSelectSession, onNewSession, o
 }
 
 function SessionGroup({
-  title,
   sessions,
   currentId,
   onSelect,
   onDelete,
 }: {
-  title: string;
   sessions: SessionMetadata[];
   currentId: string | null;
   onSelect: (id: string) => void;
@@ -113,9 +94,6 @@ function SessionGroup({
 
   return (
     <div className="mb-1">
-      <div className="px-3 py-2 text-2xs font-semibold text-text-faint uppercase tracking-widest">
-        {title}
-      </div>
       {sessions.map((session) => {
         const active = currentId === session.id;
         const confirming = confirmId === session.id;
@@ -177,11 +155,6 @@ function SessionGroup({
                 )}
               </span>
             </div>
-            {session.userId && (
-              <div className="text-2xs text-text-faint mt-0.5 truncate">
-                {session.userId}
-              </div>
-            )}
           </div>
         );
       })}

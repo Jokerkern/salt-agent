@@ -1,13 +1,11 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import { SaltSessionManager } from "../../session/index.js";
-import { type Skill, formatSkillsForPrompt } from "../../skills/index.js";
-import { runAgent } from "../../runner/index.js";
-import { config } from "../../config.js";
+import type { AgentSessionEvent } from "@mariozechner/pi-coding-agent";
+import { sessionExists, createSession, getSessionFile } from "./sessions.js";
+import { loadSettings } from "./settings.js";
+import { createSaltSession } from "../../agent.js";
 
-const SYSTEM_PROMPT_BASE = "你是一个专业的编程助手。你可以读取文件、编写代码、执行命令，帮助用户完成各种编程任务。";
-
-export function createChatRoutes(sessionManager: SaltSessionManager, skills: Skill[] = []) {
+export function createChatRoutes() {
   const app = new Hono();
 
   app.post("/send", async (c) => {
@@ -20,8 +18,8 @@ export function createChatRoutes(sessionManager: SaltSessionManager, skills: Ski
       }
 
       let sessionId = session_id;
-      if (!sessionId || !(await sessionManager.sessionExists(sessionId))) {
-        sessionId = await sessionManager.createSession("web", undefined, message);
+      if (!sessionId || !(await sessionExists(sessionId))) {
+        sessionId = await createSession();
       }
 
       return c.json({ session_id: sessionId });
@@ -39,36 +37,27 @@ export function createChatRoutes(sessionManager: SaltSessionManager, skills: Ski
       return c.json({ error: "Missing query parameter: message" }, 400);
     }
 
-    if (!(await sessionManager.sessionExists(sessionId))) {
+    if (!(await sessionExists(sessionId))) {
       return c.json({ error: "Session not found" }, 404);
     }
 
+    const settings = await loadSettings();
+    if (!settings.baseUrl || !settings.apiKey || !settings.model) {
+      return c.json({ error: "Please configure API settings first (Base URL, API Key, Model)" }, 400);
+    }
+
     return streamSSE(c, async (stream) => {
-      try {
-        const skillsPrompt = formatSkillsForPrompt(skills);
-        const systemPrompt = SYSTEM_PROMPT_BASE + skillsPrompt;
+      const { session } = await createSaltSession(settings, getSessionFile(sessionId));
 
-        await runAgent({
-          sessionId,
-          sessionFile: sessionManager.getSessionFile(sessionId),
-          prompt: message,
-          systemPrompt,
-          apiKey: config.openaiApiKey,
-          baseUrl: config.openaiBaseUrl,
-          modelId: "",  // will be resolved from SettingsManager
-          agentDir: config.agentDir,
-          cwd: process.cwd(),
-          onAgentEvent: async (event) => {
-            await stream.writeSSE({
-              data: JSON.stringify(event),
-              event: event.type,
-            });
-          },
-          onUserMessage: async (msg) => {
-            await sessionManager.updateTitleIfNeeded(sessionId, msg);
-          },
+      const unsubscribe = session.subscribe((event: AgentSessionEvent) => {
+        void stream.writeSSE({
+          data: JSON.stringify(event),
+          event: event.type,
         });
+      });
 
+      try {
+        await session.prompt(message);
         await stream.writeSSE({
           data: JSON.stringify({ type: "done" }),
           event: "done",
@@ -78,6 +67,9 @@ export function createChatRoutes(sessionManager: SaltSessionManager, skills: Ski
           data: JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
           event: "error",
         });
+      } finally {
+        unsubscribe();
+        session.dispose();
       }
     });
   });

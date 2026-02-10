@@ -117,18 +117,35 @@ function IconMoon() {
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
+function IconSettings() {
+  return (
+    <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
 interface ChatPanelProps {
   sessionId: string | null;
   onSessionCreated?: (sessionId: string) => void;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
+  onOpenSettings?: () => void;
 }
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
-export function ChatPanel({ sessionId, onSessionCreated, sidebarOpen, onToggleSidebar }: ChatPanelProps) {
-  const { messages, isStreaming, loading, send, abort } = useChat(sessionId, onSessionCreated);
+export function ChatPanel({ sessionId, onSessionCreated, sidebarOpen, onToggleSidebar, onOpenSettings }: ChatPanelProps) {
+  const { messages, isStreaming, loading, error, lastFailedInput, send, abort } = useChat(sessionId, onSessionCreated);
   const [inputValue, setInputValue] = useState('');
+
+  // Restore failed input to the text box
+  useEffect(() => {
+    if (lastFailedInput) {
+      setInputValue(lastFailedInput);
+    }
+  }, [lastFailedInput]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -180,7 +197,7 @@ export function ChatPanel({ sessionId, onSessionCreated, sidebarOpen, onToggleSi
   if (!sessionId) {
     return (
       <div className="flex-1 flex flex-col h-full">
-        <TopBar sidebarOpen={sidebarOpen} onToggleSidebar={onToggleSidebar} />
+        <TopBar sidebarOpen={sidebarOpen} onToggleSidebar={onToggleSidebar} onOpenSettings={onOpenSettings} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center animate-fade-in px-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-accent-dark/20 border border-accent-border flex items-center justify-center mx-auto mb-6">
@@ -203,6 +220,7 @@ export function ChatPanel({ sessionId, onSessionCreated, sidebarOpen, onToggleSi
         sidebarOpen={sidebarOpen}
         onToggleSidebar={onToggleSidebar}
         isStreaming={isStreaming}
+        onOpenSettings={onOpenSettings}
       />
 
       {/* Messages */}
@@ -235,6 +253,11 @@ export function ChatPanel({ sessionId, onSessionCreated, sidebarOpen, onToggleSi
       {/* Input */}
       <div className="border-t border-surface-4/40 bg-surface-0/80 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4">
+          {error && (
+            <div className="mb-2 px-3 py-2 rounded-lg bg-status-error-muted border border-status-error-border text-status-error text-sm">
+              {error}
+            </div>
+          )}
           <div className="relative flex items-end gap-2 bg-surface-2 border border-surface-4/60 rounded-2xl px-4 py-3 focus-within:border-accent/40 focus-within:ring-1 focus-within:ring-accent/20 transition-all duration-200">
             <textarea
               ref={textareaRef}
@@ -280,10 +303,12 @@ function TopBar({
   sidebarOpen,
   onToggleSidebar,
   isStreaming,
+  onOpenSettings,
 }: {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
   isStreaming?: boolean;
+  onOpenSettings?: () => void;
 }) {
   const { theme, toggle: toggleTheme } = useTheme();
 
@@ -308,6 +333,15 @@ function TopBar({
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Settings */}
+      <button
+        onClick={onOpenSettings}
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface-3 transition-colors"
+        title="API 设置"
+      >
+        <IconSettings />
+      </button>
 
       {/* Theme toggle */}
       <button

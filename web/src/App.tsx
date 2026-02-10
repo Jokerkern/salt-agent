@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SessionList } from './components/SessionList';
 import { ChatPanel } from './components/ChatPanel';
+import { SettingsDialog } from './components/SettingsDialog';
 import { ThemeContext, useThemeProvider } from './hooks/useTheme';
 import { nanoid } from 'nanoid';
 
@@ -8,6 +9,7 @@ function App() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sessionRefreshKey, setSessionRefreshKey] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const themeCtx = useThemeProvider();
 
   const handleNewSession = () => {
@@ -26,6 +28,10 @@ function App() {
     }
   };
 
+  const handleSelectSession = (id: string) => {
+    setCurrentSessionId(id);
+  };
+
   return (
     <ThemeContext.Provider value={themeCtx}>
       <div className="flex h-screen bg-surface-0">
@@ -38,7 +44,7 @@ function App() {
           <div className="w-72 h-full bg-surface-1 border-r border-surface-4/50 flex flex-col">
             <SessionList
               currentSessionId={currentSessionId}
-              onSelectSession={setCurrentSessionId}
+              onSelectSession={handleSelectSession}
               onNewSession={handleNewSession}
               onDeleteSession={handleDeleteSession}
               refreshKey={sessionRefreshKey}
@@ -53,8 +59,12 @@ function App() {
             onSessionCreated={handleSessionCreated}
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>
+
+        {/* Settings Dialog */}
+        <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       </div>
     </ThemeContext.Provider>
   );

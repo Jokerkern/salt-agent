@@ -1,71 +1,110 @@
 import { Hono } from "hono";
-import { SaltSessionManager } from "../../session/index.js";
-import { type Skill, formatSkillsForPrompt } from "../../skills/index.js";
-import { IMAdapter } from "../../im/index.js";
-import type { IMMessage, IMResponse } from "../../im/types.js";
-import { runAgent } from "../../runner/index.js";
-import { config } from "../../config.js";
+import type { AgentSessionEvent } from "@mariozechner/pi-coding-agent";
+import { sessionExists, createSession, getSessionFile } from "./sessions.js";
+import { loadSettings } from "./settings.js";
+import { createSaltSession } from "../../agent.js";
 
-const SYSTEM_PROMPT_BASE = "你是一个专业的编程助手。你可以读取文件、编写代码、执行命令，帮助用户完成各种编程任务。";
+// ---------------------------------------------------------------------------
+// IM types
+// ---------------------------------------------------------------------------
 
-export function createIMRoutes(sessionManager: SaltSessionManager, skills: Skill[] = []) {
+interface IMMessage {
+  session_id?: string;
+  user_id: string;
+  message: string;
+  callback_url: string;
+  metadata?: Record<string, any>;
+}
+
+interface IMResponse {
+  session_id: string;
+  response_text: string;
+  status: "success" | "error";
+  error?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Callback helper
+// ---------------------------------------------------------------------------
+
+async function sendCallback(callbackUrl: string, response: IMResponse): Promise<void> {
+  try {
+    const res = await fetch(callbackUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(response),
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+    }
+  } catch (error) {
+    console.error("Failed to send callback:", error);
+    throw error;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
+
+export function createIMRoutes() {
   const app = new Hono();
-  const imAdapter = new IMAdapter();
 
   app.post("/message", async (c) => {
     try {
       const body: IMMessage = await c.req.json();
 
-      // Validate request
       if (!body.user_id || !body.message || !body.callback_url) {
         return c.json({ error: "Missing required fields: user_id, message, callback_url" }, 400);
       }
 
-      // Get or create session
       let sessionId = body.session_id;
-      if (!sessionId || !(await sessionManager.sessionExists(sessionId))) {
-        sessionId = await sessionManager.createSession("im", body.user_id, body.message);
+      if (!sessionId || !(await sessionExists(sessionId))) {
+        sessionId = await createSession();
       }
 
-      // Process message asynchronously
       const capturedSessionId = sessionId;
       (async () => {
-        try {
-          const skillsPrompt = formatSkillsForPrompt(skills);
-          const systemPrompt = SYSTEM_PROMPT_BASE + skillsPrompt;
-
-          const result = await runAgent({
-            sessionId: capturedSessionId,
-            sessionFile: sessionManager.getSessionFile(capturedSessionId),
-            prompt: body.message,
-            systemPrompt,
-            apiKey: config.openaiApiKey,
-            baseUrl: config.openaiBaseUrl,
-            modelId: "",
-            agentDir: config.agentDir,
-            cwd: process.cwd(),
-            onUserMessage: async (msg) => {
-              await sessionManager.updateTitleIfNeeded(capturedSessionId, msg);
-            },
-          });
-
-          const response: IMResponse = {
+        const settings = await loadSettings();
+        if (!settings.baseUrl || !settings.apiKey || !settings.model) {
+          await sendCallback(body.callback_url, {
             session_id: capturedSessionId,
-            response_text: result.assistantText || "No response",
-            status: result.error ? "error" : "success",
-            error: result.error,
-          };
-
-          await imAdapter.sendCallback(body.callback_url, response);
-        } catch (error) {
-          const response: IMResponse = {
-            session_id: capturedSessionId,
-            response_text: "",
+            response_text: "API settings not configured",
             status: "error",
-            error: error instanceof Error ? error.message : String(error),
-          };
-          await imAdapter.sendCallback(body.callback_url, response);
+            error: "Please configure Base URL, API Key, and Model in settings",
+          });
+          return;
         }
+
+        const { session } = await createSaltSession(settings, getSessionFile(capturedSessionId));
+
+        let assistantText = "";
+        const unsubscribe = session.subscribe((event: AgentSessionEvent) => {
+          if (event.type === "message_end" && event.message.role === "assistant") {
+            const textContent = (event.message as any).content?.filter?.((c: any) => c.type === "text");
+            if (textContent) {
+              assistantText = textContent.map((c: any) => c.text).join("\n");
+            }
+          }
+        });
+
+        let error: string | undefined;
+        try {
+          await session.prompt(body.message);
+        } catch (err: any) {
+          error = err?.message || String(err);
+        } finally {
+          unsubscribe();
+          session.dispose();
+        }
+
+        const response: IMResponse = {
+          session_id: capturedSessionId,
+          response_text: assistantText || "No response",
+          status: error ? "error" : "success",
+          error,
+        };
+        await sendCallback(body.callback_url, response).catch(() => {});
       })();
 
       return c.json({ session_id: sessionId, status: "accepted" }, 202);
