@@ -2,12 +2,315 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+/* ═══════════════════════════════════════════════════════════
+   Theme Variables
+   Solid colors use space-separated RGB for Tailwind opacity
+   Pre-alpha colors use full rgba()
+   ═══════════════════════════════════════════════════════════ */
+
+:root,
+[data-theme="dark"] {
+  /* Surface – RGB triplets */
+  --surface-0: 10 10 12;
+  --surface-1: 17 17 19;
+  --surface-2: 24 24 27;
+  --surface-3: 30 30 34;
+  --surface-4: 39 39 42;
+  --surface-5: 63 63 70;
+
+  /* Text – RGB triplets */
+  --text-primary: 244 244 245;
+  --text-secondary: 161 161 170;
+  --text-muted: 113 113 122;
+  --text-faint: 82 82 91;
+
+  /* Accent – RGB triplets */
+  --accent: 99 102 241;
+  --accent-light: 129 140 248;
+  --accent-dark: 79 70 229;
+
+  /* Accent – pre-alpha */
+  --accent-muted: rgba(99, 102, 241, 0.15);
+  --accent-border: rgba(99, 102, 241, 0.25);
+
+  /* Status – RGB triplets */
+  --status-success: 34 197 94;
+  --status-error: 239 68 68;
+  --status-warning: 245 158 11;
+
+  /* Status – pre-alpha */
+  --status-success-muted: rgba(34, 197, 94, 0.12);
+  --status-success-border: rgba(34, 197, 94, 0.25);
+  --status-error-muted: rgba(239, 68, 68, 0.12);
+  --status-error-border: rgba(239, 68, 68, 0.25);
+  --status-warning-muted: rgba(245, 158, 11, 0.12);
+  --status-warning-border: rgba(245, 158, 11, 0.25);
+
+  /* Markdown / code – full hex (CSS only, no Tailwind opacity) */
+  --code-bg: #27272a;
+  --pre-bg: #18181b;
+  --scrollbar-thumb: #3f3f46;
+  --scrollbar-hover: #52525b;
+  --md-heading: #f4f4f5;
+  --md-text: #e4e4e7;
+  --md-link: #818cf8;
+  --md-blockquote: #a1a1aa;
+  --md-border: #27272a;
+  --tool-detail-bg: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] {
+  --surface-0: 255 255 255;
+  --surface-1: 248 249 251;
+  --surface-2: 240 241 243;
+  --surface-3: 228 229 233;
+  --surface-4: 209 211 217;
+  --surface-5: 161 165 176;
+
+  --text-primary: 26 28 35;
+  --text-secondary: 74 77 87;
+  --text-muted: 107 111 123;
+  --text-faint: 158 162 173;
+
+  --accent: 79 70 229;
+  --accent-light: 99 102 241;
+  --accent-dark: 67 56 202;
+
+  --accent-muted: rgba(79, 70, 229, 0.08);
+  --accent-border: rgba(79, 70, 229, 0.20);
+
+  --status-success: 22 163 74;
+  --status-error: 220 38 38;
+  --status-warning: 217 119 6;
+
+  --status-success-muted: rgba(22, 163, 74, 0.08);
+  --status-success-border: rgba(22, 163, 74, 0.20);
+  --status-error-muted: rgba(220, 38, 38, 0.08);
+  --status-error-border: rgba(220, 38, 38, 0.20);
+  --status-warning-muted: rgba(217, 119, 6, 0.08);
+  --status-warning-border: rgba(217, 119, 6, 0.20);
+
+  --code-bg: #e8e9ed;
+  --pre-bg: #f4f5f7;
+  --scrollbar-thumb: #c8cad0;
+  --scrollbar-hover: #a1a5b0;
+  --md-heading: #1a1c23;
+  --md-text: #2d2f36;
+  --md-link: #4f46e5;
+  --md-blockquote: #6b6f7b;
+  --md-border: #d1d3d9;
+  --tool-detail-bg: rgba(0, 0, 0, 0.04);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Base
+   ═══════════════════════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
   margin: 0;
-  min-height: 100vh;
-  font-family: Inter, system-ui, -apple-system, sans-serif;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  background-color: rgb(var(--surface-0));
+  color: rgb(var(--text-primary));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 #root {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Scrollbar
+   ═══════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Markdown Rendering
+   ═══════════════════════════════════════════════════════════ */
+
+.md-body {
+  color: var(--md-text);
+  line-height: 1.75;
+  font-size: 0.875rem;
+  word-break: break-word;
+}
+
+.md-body p {
+  margin-bottom: 0.625em;
+}
+
+.md-body p:last-child {
+  margin-bottom: 0;
+}
+
+.md-body pre {
+  background: var(--pre-bg);
+  border: 1px solid var(--md-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+  font-size: 0.8125rem;
+}
+
+.md-body code {
+  background: var(--code-bg);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.8125rem;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+}
+
+.md-body pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+.md-body ul,
+.md-body ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.625em;
+}
+
+.md-body li {
+  margin-bottom: 0.25em;
+}
+
+.md-body li > p {
+  margin-bottom: 0.25em;
+}
+
+.md-body blockquote {
+  border-left: 3px solid rgb(var(--accent));
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  color: var(--md-blockquote);
+}
+
+.md-body h1,
+.md-body h2,
+.md-body h3,
+.md-body h4,
+.md-body h5,
+.md-body h6 {
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  color: var(--md-heading);
+  line-height: 1.4;
+}
+
+.md-body h1 { font-size: 1.5em; }
+.md-body h2 { font-size: 1.25em; }
+.md-body h3 { font-size: 1.1em; }
+
+.md-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.8125rem;
+}
+
+.md-body th,
+.md-body td {
+  border: 1px solid var(--md-border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.md-body th {
+  background: var(--pre-bg);
+  font-weight: 600;
+}
+
+.md-body a {
+  color: var(--md-link);
+  text-decoration: none;
+}
+
+.md-body a:hover {
+  text-decoration: underline;
+}
+
+.md-body hr {
+  border: none;
+  border-top: 1px solid var(--md-border);
+  margin: 1em 0;
+}
+
+.md-body img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Typing cursor
+   ═══════════════════════════════════════════════════════════ */
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.typing-cursor::after {
+  content: '\25CB';
+  display: inline-block;
+  margin-left: 2px;
+  animation: blink 1s infinite;
+  color: rgb(var(--accent));
+  font-size: 0.75em;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Sidebar transition
+   ═══════════════════════════════════════════════════════════ */
+
+.sidebar-transition {
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Textarea
+   ═══════════════════════════════════════════════════════════ */
+
+textarea::placeholder {
+  color: rgb(var(--text-faint));
 }
