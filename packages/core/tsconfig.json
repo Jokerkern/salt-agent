@@ -4,6 +4,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -15,11 +17,9 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+  
   },
-  "references": [
-    { "path": "./packages/core" },
-    { "path": "./packages/server" }
-  ],
-  "exclude": ["node_modules", "dist", "web"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

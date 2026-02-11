@@ -1,0 +1,24 @@
+{
+  "name": "@salt-agent/server",
+  "version": "0.1.0",
+  "description": "Salt Agent HTTP server - Hono API, SSE streaming, IM webhook",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "dev": "tsx --watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@salt-agent/core": "*",
+    "@hono/node-server": "^1.13.7",
+    "hono": "^4.6.14",
+    "dotenv": "^17.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

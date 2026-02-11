@@ -3,6 +3,7 @@ dist/
 *.log
 .env
 .DS_Store
-sessions/
+*.db
+*.db-journal
 web/dist/
 web/node_modules/

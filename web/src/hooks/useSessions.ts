@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getSessions } from '../lib/api';
-import type { SessionMetadata } from '../types';
+import type { SessionInfo } from '../types';
 
 export function useSessions(autoRefresh = true, refreshKey = 0) {
-  const [sessions, setSessions] = useState<SessionMetadata[]>([]);
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

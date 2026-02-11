@@ -1,9 +1,37 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getSession, sendMessage, createSSE } from '../lib/api';
-import type { Message, AgentEvent } from '../types';
+import type { MessageInfo, ContentBlock, AgentEvent } from '../types';
+
+/**
+ * Streaming assistant message being built up from SSE events.
+ * This is a temporary UI-only structure that gets finalized
+ * once the stream completes and the persisted message is loaded.
+ */
+interface StreamingAssistant {
+  currentText: string;
+  blocks: ContentBlock[];
+}
+
+function buildMessageFromStream(s: StreamingAssistant): MessageInfo {
+  const blocks: ContentBlock[] = [...s.blocks];
+  // Append current streaming text (if any) as a text block
+  if (s.currentText) {
+    blocks.push({ type: 'text', text: s.currentText });
+  }
+  return {
+    id: '__streaming__',
+    sessionId: '',
+    role: 'assistant',
+    content: blocks,
+    tokensInput: 0,
+    tokensOutput: 0,
+    cost: 0,
+    createdAt: Date.now(),
+  };
+}
 
 export function useChat(sessionId: string | null, onSessionCreated?: (id: string) => void) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageInfo[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -11,16 +39,15 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
   const eventSourceRef = useRef<EventSource | null>(null);
   const currentSessionIdRef = useRef<string | null>(sessionId);
   const skipNextLoadRef = useRef(false);
+  const streamingRef = useRef<StreamingAssistant | null>(null);
 
-  // Update ref when prop changes
   useEffect(() => {
     currentSessionIdRef.current = sessionId;
   }, [sessionId]);
 
-  // Load session messages
+  // Load session messages when session changes
   useEffect(() => {
     if (sessionId) {
-      // Skip reload when we just updated the session ID mid-stream
       if (skipNextLoadRef.current) {
         skipNextLoadRef.current = false;
         return;
@@ -32,7 +59,6 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
         })
         .catch((err) => {
           console.error('Failed to load session:', err);
-          // Session doesn't exist yet, that's ok for new sessions
           setMessages([]);
         })
         .finally(() => {
@@ -43,7 +69,20 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
     }
   }, [sessionId]);
 
-  const send = async (text: string) => {
+  const updateStreamingMessage = useCallback(() => {
+    if (!streamingRef.current) return;
+    const msg = buildMessageFromStream(streamingRef.current);
+    setMessages((prev) => {
+      // Replace the last message if it's our streaming placeholder
+      const last = prev[prev.length - 1];
+      if (last && last.id === '__streaming__') {
+        return [...prev.slice(0, -1), msg];
+      }
+      return [...prev, msg];
+    });
+  }, []);
+
+  const send = useCallback(async (text: string) => {
     if (isStreaming) return;
 
     try {
@@ -51,11 +90,16 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
       setError(null);
       setLastFailedInput(null);
 
-      // Add user message
-      const userMsg: Message = {
+      // Add optimistic user message
+      const userMsg: MessageInfo = {
+        id: '__user_pending__',
+        sessionId: currentSessionIdRef.current ?? '',
         role: 'user',
-        content: text,
-        timestamp: Date.now(),
+        content: [{ type: 'text', text }],
+        tokensInput: 0,
+        tokensOutput: 0,
+        cost: 0,
+        createdAt: Date.now(),
       };
       setMessages((prev) => [...prev, userMsg]);
 
@@ -63,105 +107,174 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
       const result = await sendMessage(text, currentSessionIdRef.current || undefined);
       const sid = result.session_id;
 
-      // Update session ID if server returned a different one (new session)
       if (sid && sid !== currentSessionIdRef.current) {
         currentSessionIdRef.current = sid;
         skipNextLoadRef.current = true;
         onSessionCreated?.(sid);
       }
 
-      // Connect SSE - use the ref to ensure we have the right session ID
+      // Connect SSE
       const es = createSSE(currentSessionIdRef.current || sid, text);
       eventSourceRef.current = es;
 
-      let partialMessage: Message | null = null;
+      // Initialize streaming state
+      streamingRef.current = { currentText: '', blocks: [] };
 
-      const handleEvent = (e: MessageEvent) => {
-        const event: AgentEvent = JSON.parse(e.data);
+      // --- Event handlers ---
 
-        // Skip user messages from SSE — they are already added optimistically
-        if (event.message?.role === 'user') return;
-
-        switch (event.type) {
-          case 'message_start':
-            if (event.message) {
-              partialMessage = event.message;
-              setMessages((prev) => [...prev, partialMessage!]);
-            }
-            break;
-
-          case 'message_update':
-            if (event.message) {
-              partialMessage = event.message;
-              setMessages((prev) => [...prev.slice(0, -1), partialMessage!]);
-            }
-            break;
-
-          case 'message_end':
-            if (event.message) {
-              setMessages((prev) => [...prev.slice(0, -1), event.message!]);
-            }
-            partialMessage = null;
-            break;
-
-          case 'agent_end':
-            es.close();
-            setIsStreaming(false);
-            break;
+      const handleTextStart = () => {
+        if (streamingRef.current) {
+          streamingRef.current.currentText = '';
         }
       };
 
-      es.addEventListener('message_start', handleEvent);
-      es.addEventListener('message_update', handleEvent);
-      es.addEventListener('message_end', handleEvent);
-      es.addEventListener('agent_end', handleEvent);
-      es.addEventListener('turn_start', handleEvent);
-      es.addEventListener('turn_end', handleEvent);
+      const handleTextDelta = (e: MessageEvent) => {
+        const event: AgentEvent = JSON.parse(e.data);
+        if (event.type === 'text-delta' && streamingRef.current) {
+          streamingRef.current.currentText += event.delta;
+          updateStreamingMessage();
+        }
+      };
+
+      const handleTextEnd = (e: MessageEvent) => {
+        const event: AgentEvent = JSON.parse(e.data);
+        if (event.type === 'text-end' && streamingRef.current) {
+          streamingRef.current.blocks.push({ type: 'text', text: event.text });
+          streamingRef.current.currentText = '';
+          updateStreamingMessage();
+        }
+      };
+
+      const handleToolCallStart = (e: MessageEvent) => {
+        const event: AgentEvent = JSON.parse(e.data);
+        if (event.type === 'tool-call-start' && streamingRef.current) {
+          // Add placeholder tool-call block
+          streamingRef.current.blocks.push({
+            type: 'tool-call',
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+            args: undefined,
+          });
+          updateStreamingMessage();
+        }
+      };
+
+      const handleToolCallArgs = (e: MessageEvent) => {
+        const event: AgentEvent = JSON.parse(e.data);
+        if (event.type === 'tool-call-args' && streamingRef.current) {
+          // Update the existing tool-call block with args
+          const blocks = streamingRef.current.blocks;
+          const idx = blocks.findIndex(
+            (b) => b.type === 'tool-call' && b.toolCallId === event.toolCallId
+          );
+          if (idx !== -1) {
+            blocks[idx] = {
+              type: 'tool-call',
+              toolCallId: event.toolCallId,
+              toolName: event.toolName,
+              args: event.args,
+            };
+          }
+          updateStreamingMessage();
+        }
+      };
+
+      const handleToolResult = (e: MessageEvent) => {
+        const event: AgentEvent = JSON.parse(e.data);
+        if (event.type === 'tool-result' && streamingRef.current) {
+          streamingRef.current.blocks.push({
+            type: 'tool-result',
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+            result: event.result,
+          });
+          updateStreamingMessage();
+        }
+      };
+
+      const handleToolError = (e: MessageEvent) => {
+        const event: AgentEvent = JSON.parse(e.data);
+        if (event.type === 'tool-error' && streamingRef.current) {
+          streamingRef.current.blocks.push({
+            type: 'tool-result',
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+            result: event.error,
+            isError: true,
+          });
+          updateStreamingMessage();
+        }
+      };
+
+      const handleDone = () => {
+        streamingRef.current = null;
+        es.close();
+        setIsStreaming(false);
+        // Reload the session to get persisted messages with proper IDs
+        if (currentSessionIdRef.current) {
+          getSession(currentSessionIdRef.current).then((data) => {
+            setMessages(data.messages);
+          }).catch(console.error);
+        }
+      };
 
       let errorHandled = false;
       const handleError = (msg: string) => {
         if (errorHandled) return;
         errorHandled = true;
-        setMessages((prev) => prev.slice(0, -1));
+        streamingRef.current = null;
+        // Remove the streaming message and optimistic user message
+        setMessages((prev) => prev.filter((m) => m.id !== '__streaming__' && m.id !== '__user_pending__'));
         setLastFailedInput(text);
         setError(msg);
         es.close();
         setIsStreaming(false);
       };
 
-      // SSE named "error" event (has data from server)
-      es.addEventListener('error', (e: Event) => {
-        const me = e as MessageEvent;
-        if (!me.data) return; // native error, let onerror handle it
+      const handleServerError = (e: MessageEvent) => {
         let errMsg = '请求失败';
         try {
-          const data = JSON.parse(me.data);
+          const data = JSON.parse(e.data);
           errMsg = data.error || errMsg;
         } catch { /* ignore */ }
         handleError(errMsg);
+      };
+
+      // Register SSE event listeners
+      es.addEventListener('text-start', handleTextStart);
+      es.addEventListener('text-delta', handleTextDelta);
+      es.addEventListener('text-end', handleTextEnd);
+      es.addEventListener('tool-call-start', handleToolCallStart);
+      es.addEventListener('tool-call-args', handleToolCallArgs);
+      es.addEventListener('tool-result', handleToolResult);
+      es.addEventListener('tool-error', handleToolError);
+      es.addEventListener('done', handleDone);
+      es.addEventListener('error', (e: Event) => {
+        const me = e as MessageEvent;
+        if (!me.data) return; // native error, let onerror handle it
+        handleServerError(me);
       });
 
-      // Native connection error (no data)
       es.onerror = () => {
         handleError('连接失败，请检查 API 设置');
       };
     } catch (err) {
       console.error('Failed to send message:', err);
-      // Roll back the optimistic user message
-      setMessages((prev) => prev.slice(0, -1));
+      setMessages((prev) => prev.filter((m) => m.id !== '__user_pending__'));
       setLastFailedInput(text);
       setError(err instanceof Error ? err.message : '发送失败');
       setIsStreaming(false);
     }
-  };
+  }, [isStreaming, onSessionCreated, updateStreamingMessage]);
 
-  const abort = () => {
+  const abort = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
+      streamingRef.current = null;
       setIsStreaming(false);
     }
-  };
+  }, []);
 
   return { messages, isStreaming, loading, error, lastFailedInput, send, abort };
 }

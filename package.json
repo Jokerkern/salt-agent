@@ -1,33 +1,19 @@
 {
   "name": "salt-agent",
   "version": "0.1.0",
-  "description": "Coding agent with OpenAI, HTTP server for IM integration and Web UI",
+  "private": true,
+  "description": "AI coding agent with Vercel AI SDK, HTTP server for IM integration and Web UI",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "tsx --watch src/main.ts",
-    "build": "tsup src/main.ts --format esm --dts && npm run web:build",
-    "start": "node dist/main.js",
-    "typecheck": "tsc --noEmit",
-    "web:dev": "cd web && npm run dev",
-    "web:build": "cd web && npm run build",
-    "web:install": "cd web && npm install"
-  },
-  "dependencies": {
-    "@hono/node-server": "^1.13.7",
-    "@mariozechner/pi-agent-core": "^0.52.9",
-    "@mariozechner/pi-ai": "^0.52.9",
-    "@mariozechner/pi-coding-agent": "^0.52.9",
-    "@sinclair/typebox": "^0.34.9",
-    "dotenv": "^17.2.4",
-    "hono": "^4.6.14",
-    "nanoid": "^5.0.9",
-    "yaml": "^2.8.2"
+    "dev": "npm run dev -w @salt-agent/server",
+    "typecheck": "npm run typecheck -w @salt-agent/core && npm run typecheck -w @salt-agent/server",
+    "db:generate": "npm run db:generate -w @salt-agent/core",
+    "db:migrate": "npm run db:migrate -w @salt-agent/core"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "tailwindcss": "^3.4.17",
-    "tsup": "^8.3.5",
-    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }

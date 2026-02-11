@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '../hooks/useChat';
 import { useTheme } from '../hooks/useTheme';
-import type { Message } from '../types';
+import type { MessageInfo, ToolCallBlock, ToolResultBlock } from '../types';
 
 // ─── Icons (inline SVG) ─────────────────────────────────────────────────────
 
@@ -115,8 +115,6 @@ function IconMoon() {
   );
 }
 
-// ─── Props ───────────────────────────────────────────────────────────────────
-
 function IconSettings() {
   return (
     <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -125,6 +123,8 @@ function IconSettings() {
     </svg>
   );
 }
+
+// ─── Props ───────────────────────────────────────────────────────────────────
 
 interface ChatPanelProps {
   sessionId: string | null;
@@ -211,9 +211,6 @@ export function ChatPanel({ sessionId, onSessionCreated, sidebarOpen, onToggleSi
     );
   }
 
-  const isNewSession = sessionId && messages.length === 0 && !loading;
-  const visibleMessages = messages.filter((m) => m.role !== 'toolResult');
-
   return (
     <div className="flex-1 flex flex-col h-full">
       <TopBar
@@ -236,15 +233,16 @@ export function ChatPanel({ sessionId, onSessionCreated, sidebarOpen, onToggleSi
           ) : messages.length === 0 ? (
             <WelcomeScreen onSuggestionClick={handleSuggestionClick} />
           ) : (
-            visibleMessages.map((msg, idx) => (
-              <MessageBubble
-                key={idx}
-                message={msg}
-                allMessages={messages}
-                isLast={idx === visibleMessages.length - 1}
-                isStreaming={isStreaming}
-              />
-            ))
+            messages
+              .filter((m) => m.role !== 'tool')
+              .map((msg, idx, arr) => (
+                <MessageBubble
+                  key={msg.id + '-' + idx}
+                  message={msg}
+                  isLast={idx === arr.length - 1}
+                  isStreaming={isStreaming}
+                />
+              ))
           )}
           <div ref={messagesEndRef} />
         </div>
@@ -264,7 +262,7 @@ export function ChatPanel({ sessionId, onSessionCreated, sidebarOpen, onToggleSi
               value={inputValue}
               onChange={handleTextareaInput}
               onKeyDown={handleKeyDown}
-              placeholder={isNewSession ? '输入消息开始对话...' : '输入消息...'}
+              placeholder={messages.length === 0 ? '输入消息开始对话...' : '输入消息...'}
               disabled={isStreaming}
               rows={1}
               className="flex-1 bg-transparent text-text-primary placeholder:text-text-faint resize-none outline-none text-sm leading-relaxed max-h-[200px] disabled:opacity-50"
@@ -338,7 +336,7 @@ function TopBar({
       <button
         onClick={onOpenSettings}
         className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface-3 transition-colors"
-        title="API 设置"
+        title="设置"
       >
         <IconSettings />
       </button>
@@ -392,12 +390,10 @@ function WelcomeScreen({ onSuggestionClick }: { onSuggestionClick: (text: string
 
 function MessageBubble({
   message,
-  allMessages,
   isLast,
   isStreaming,
 }: {
-  message: Message;
-  allMessages: Message[];
+  message: MessageInfo;
   isLast: boolean;
   isStreaming: boolean;
 }) {
@@ -409,7 +405,6 @@ function MessageBubble({
     return (
       <AssistantBubble
         message={message}
-        allMessages={allMessages}
         isLast={isLast}
         isStreaming={isStreaming}
       />
@@ -421,16 +416,16 @@ function MessageBubble({
 
 // ─── User Bubble ────────────────────────────────────────────────────────────
 
-function UserBubble({ message }: { message: Message }) {
-  const content =
-    typeof message.content === 'string'
-      ? message.content
-      : message.content?.[0]?.text || '';
+function UserBubble({ message }: { message: MessageInfo }) {
+  const textContent = message.content
+    .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
+    .map((b) => b.text)
+    .join('\n');
 
   return (
     <div className="flex justify-end mb-5 animate-slide-up">
       <div className="max-w-[85%] bg-accent-muted border border-accent-border text-text-primary px-4 py-2.5 rounded-2xl rounded-br-md">
-        <p className="text-sm whitespace-pre-wrap leading-relaxed">{content}</p>
+        <p className="text-sm whitespace-pre-wrap leading-relaxed">{textContent}</p>
       </div>
     </div>
   );
@@ -440,23 +435,20 @@ function UserBubble({ message }: { message: Message }) {
 
 function AssistantBubble({
   message,
-  allMessages,
   isLast,
   isStreaming,
 }: {
-  message: Message;
-  allMessages: Message[];
+  message: MessageInfo;
   isLast: boolean;
   isStreaming: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
-  const textBlocks = message.content?.filter?.((c: any) => c.type === 'text') || [];
-  const textContent = textBlocks.map((c: any) => c.text).join('\n');
-  const toolCalls = message.content?.filter?.((c: any) => c.type === 'toolCall') || [];
-
-  const msgIdx = allMessages.indexOf(message);
-  const nextMessages = allMessages.slice(msgIdx + 1);
+  // Separate content blocks by type
+  const textBlocks = message.content.filter((b): b is { type: 'text'; text: string } => b.type === 'text');
+  const toolCallBlocks = message.content.filter((b): b is ToolCallBlock => b.type === 'tool-call');
+  const toolResultBlocks = message.content.filter((b): b is ToolResultBlock => b.type === 'tool-result');
+  const textContent = textBlocks.map((b) => b.text).join('\n');
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(textContent || '');
@@ -475,18 +467,19 @@ function AssistantBubble({
         {/* Content */}
         <div className="flex-1 min-w-0">
           {/* Tool calls */}
-          {toolCalls.length > 0 && (
+          {toolCallBlocks.length > 0 && (
             <div className="mb-3 space-y-1.5">
-              {toolCalls.map((tc: any, tcIdx: number) => {
-                const result = nextMessages.find(
-                  (m) => m.role === 'toolResult' && m.toolCallId === tc.id
+              {toolCallBlocks.map((tc, tcIdx) => {
+                const result = toolResultBlocks.find(
+                  (r) => r.toolCallId === tc.toolCallId
                 );
+                const isRunning = isStreaming && isLast && !result;
                 return (
                   <ToolCallCard
-                    key={tc.id || tcIdx}
+                    key={tc.toolCallId || tcIdx}
                     toolCall={tc}
                     result={result}
-                    isRunning={isStreaming && !result}
+                    isRunning={isRunning}
                   />
                 );
               })}
@@ -496,11 +489,6 @@ function AssistantBubble({
           {/* Text */}
           {textContent && (
             <div className="relative">
-              <div
-                className={`md-body ${isLast && isStreaming ? 'typing-cursor' : ''}`}
-                dangerouslySetInnerHTML={{ __html: '' }}
-                style={{ display: 'none' }}
-              />
               <MarkdownContent content={textContent} isTyping={isLast && isStreaming} />
 
               {/* Copy button */}
@@ -515,6 +503,13 @@ function AssistantBubble({
               )}
             </div>
           )}
+
+          {/* Streaming cursor when no text yet but streaming */}
+          {!textContent && isLast && isStreaming && toolCallBlocks.length === 0 && (
+            <div className="md-body typing-cursor">
+              <span className="invisible">.</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -524,9 +519,6 @@ function AssistantBubble({
 // ─── Markdown Content ───────────────────────────────────────────────────────
 
 function MarkdownContent({ content, isTyping }: { content: string; isTyping: boolean }) {
-  // Use a simple approach: render markdown as HTML
-  // Since we have @ant-design/x-markdown, try to use it
-  // But for better dark theme control, we use a simple renderer
   return (
     <div className={`md-body ${isTyping ? 'typing-cursor' : ''}`}>
       <SimpleMarkdown text={content} />
@@ -669,8 +661,8 @@ function ToolCallCard({
   result,
   isRunning,
 }: {
-  toolCall: any;
-  result?: Message;
+  toolCall: ToolCallBlock;
+  result?: ToolResultBlock;
   isRunning: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -705,10 +697,11 @@ function ToolCallCard({
     statusLabel = '等待';
   }
 
-  const resultContent = result?.content
-    ?.filter?.((c: any) => c.type === 'text')
-    .map((c: any) => c.text)
-    .join('\n');
+  const resultText = result
+    ? typeof result.result === 'string'
+      ? result.result
+      : JSON.stringify(result.result, null, 2)
+    : undefined;
 
   return (
     <div className={`border rounded-xl overflow-hidden transition-colors duration-200 ${borderColor} ${bgColor}`}>
@@ -717,7 +710,7 @@ function ToolCallCard({
         className={`w-full flex items-center gap-2 px-3 py-2 text-left ${textColor}`}
       >
         <IconTool />
-        <span className="text-xs font-medium flex-1 truncate">{toolCall.name}</span>
+        <span className="text-xs font-medium flex-1 truncate">{toolCall.toolName}</span>
 
         {isRunning && (
           <div className="w-3 h-3 border-[1.5px] border-current border-t-transparent rounded-full animate-spin flex-shrink-0" />
@@ -733,14 +726,14 @@ function ToolCallCard({
             <div>
               <div className="text-2xs uppercase tracking-wider opacity-40 mb-1 font-medium">参数</div>
               <pre className={`rounded-lg p-2.5 overflow-x-auto font-mono text-[11px] leading-relaxed ${textColor}`} style={{ background: 'var(--tool-detail-bg)' }}>
-                {JSON.stringify(toolCall.arguments, null, 2)}
+                {JSON.stringify(toolCall.args, null, 2)}
               </pre>
             </div>
-            {resultContent && (
+            {resultText && (
               <div>
                 <div className="text-2xs uppercase tracking-wider opacity-40 mb-1 font-medium">结果</div>
                 <pre className={`rounded-lg p-2.5 overflow-x-auto font-mono text-[11px] leading-relaxed max-h-48 overflow-y-auto ${textColor}`} style={{ background: 'var(--tool-detail-bg)' }}>
-                  {resultContent}
+                  {resultText}
                 </pre>
               </div>
             )}

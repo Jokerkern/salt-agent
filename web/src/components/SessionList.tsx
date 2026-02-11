@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSessions } from '../hooks/useSessions';
 import { deleteSession } from '../lib/api';
 import { formatRelativeTime, truncate } from '../lib/utils';
-import type { SessionMetadata } from '../types';
+import type { SessionInfo } from '../types';
 
 interface SessionListProps {
   currentSessionId: string | null;
@@ -85,7 +85,7 @@ function SessionGroup({
   onSelect,
   onDelete,
 }: {
-  sessions: SessionMetadata[];
+  sessions: SessionInfo[];
   currentId: string | null;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
