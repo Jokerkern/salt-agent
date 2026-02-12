@@ -8,10 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @salt-agent/server",
-    "typecheck": "npm run typecheck -w @salt-agent/core && npm run typecheck -w @salt-agent/server",
-    "db:generate": "npm run db:generate -w @salt-agent/core",
-    "db:migrate": "npm run db:migrate -w @salt-agent/core"
+    "typecheck": "npm run typecheck -w @salt-agent/salt-agent"
   },
   "devDependencies": {
     "typescript": "^5.7.2"
