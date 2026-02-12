@@ -15,6 +15,7 @@ import {
   getWorkplaceDir,
   type AgentEvent,
   type ContentBlock,
+  type ProviderConfig,
 } from "@salt-agent/core"
 
 export function createChatRoutes() {
@@ -96,12 +97,17 @@ export function createChatRoutes() {
       let lastFinishReason = "stop"
 
       try {
+        // Build provider-specific options (e.g. reasoning/thinking config)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const providerOptions = buildProviderOptions(providerConfig) as any
+
         const events = runAgentLoop({
           model,
           agent: agentInfo,
           messages: coreMessages,
           cwd: getWorkplaceDir(),
           abort: controller.signal,
+          providerOptions,
         })
 
         for await (const event of events) {
@@ -184,4 +190,44 @@ function collectContent(event: AgentEvent, content: ContentBlock[]): void {
       })
       break
   }
+}
+
+/**
+ * Build provider-specific options for streamText.
+ *
+ * OpenAI o-series:     reasoning via reasoningEffort
+ * Anthropic Claude:    thinking via budgetTokens
+ * OpenAI-compatible:   reasoning via reasoningEffort (some proxied models support it)
+ *
+ * The ProviderConfig.options field can override these, e.g.:
+ *   { "reasoningEffort": "high" }
+ *   { "thinkingBudget": 10000 }
+ */
+function buildProviderOptions(config: ProviderConfig) {
+  const opts = config.options as Record<string, unknown> | undefined
+
+  // User-specified reasoning effort (for OpenAI / compatible)
+  const reasoningEffort = opts?.["reasoningEffort"] as string | undefined
+  // User-specified thinking budget (for Anthropic)
+  const thinkingBudget = opts?.["thinkingBudget"] as number | undefined
+
+  if (config.providerId === "openai" || config.providerId === "openai-compatible") {
+    if (reasoningEffort) {
+      return {
+        openai: { reasoningEffort },
+      }
+    }
+  }
+
+  if (config.providerId === "anthropic") {
+    if (thinkingBudget) {
+      return {
+        anthropic: {
+          thinking: { type: "enabled", budgetTokens: thinkingBudget },
+        },
+      }
+    }
+  }
+
+  return undefined
 }

@@ -180,9 +180,9 @@ export function getMessages(sessionId: string): MessageInfo[] {
  * Build CoreMessage[] for the Vercel AI SDK from stored messages.
  * Converts our message format into the format expected by streamText().
  */
-export function buildCoreMessages(sessionId: string): import("ai").CoreMessage[] {
+export function buildCoreMessages(sessionId: string): any[] {
   const messages = getMessages(sessionId)
-  const result: import("ai").CoreMessage[] = []
+  const result: any[] = []
 
   for (const msg of messages) {
     if (msg.role === "user") {
@@ -207,7 +207,7 @@ export function buildCoreMessages(sessionId: string): import("ai").CoreMessage[]
           })
         }
       }
-      result.push({ role: "assistant", content: parts as import("ai").AssistantContent })
+      result.push({ role: "assistant", content: parts as any })
     } else if (msg.role === "tool") {
       // Tool results
       for (const block of msg.content) {
@@ -221,7 +221,7 @@ export function buildCoreMessages(sessionId: string): import("ai").CoreMessage[]
                 toolName: block.toolName,
                 output: block.result,
                 isError: block.isError,
-              } as import("ai").ToolResultPart,
+              } as any,
             ],
           })
         }

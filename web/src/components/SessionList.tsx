@@ -13,7 +13,7 @@ interface SessionListProps {
 }
 
 export function SessionList({ currentSessionId, onSelectSession, onNewSession, onDeleteSession, refreshKey = 0 }: SessionListProps) {
-  const { sessions, loading, error, refresh } = useSessions(true, refreshKey);
+  const { sessions, loading, error, refresh } = useSessions(false, refreshKey);
 
   const handleDelete = async (id: string) => {
     try {
@@ -38,15 +38,25 @@ export function SessionList({ currentSessionId, onSelectSession, onNewSession, o
       </div>
 
       {/* New Chat */}
-      <div className="px-3 pb-3">
+      <div className="px-3 pb-3 flex gap-2">
         <button
           onClick={onNewSession}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-surface-4/60 text-text-secondary hover:text-text-primary hover:bg-surface-3/50 hover:border-surface-5/50 transition-all duration-200 group"
+          className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-surface-4/60 text-text-secondary hover:text-text-primary hover:bg-surface-3/50 hover:border-surface-5/50 transition-all duration-200 group"
         >
           <svg className="w-4 h-4 text-text-muted group-hover:text-accent-light transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
           <span className="text-sm">新建会话</span>
+        </button>
+        <button
+          onClick={refresh}
+          disabled={loading}
+          className="px-3 py-2.5 rounded-xl border border-surface-4/60 text-text-secondary hover:text-text-primary hover:bg-surface-3/50 hover:border-surface-5/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          title="刷新会话列表"
+        >
+          <svg className={`w-4 h-4 text-text-muted hover:text-accent-light transition-colors ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
         </button>
       </div>
 

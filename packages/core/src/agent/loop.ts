@@ -1,4 +1,4 @@
-import { streamText, stepCountIs, type ToolSet, type LanguageModel, type CoreMessage } from "ai"
+import { streamText, stepCountIs, type ToolSet, type LanguageModel } from "ai"
 import type { AgentInfo } from "./agent.js"
 import { getSystemPrompt } from "./agent.js"
 import { createAllTools, filterTools } from "../tool/tools/index.js"
@@ -26,9 +26,11 @@ export type AgentEvent =
 export interface AgentLoopInput {
   model: LanguageModel
   agent: AgentInfo
-  messages: CoreMessage[]
+  messages: any[]
   cwd: string
   abort?: AbortSignal
+  /** Provider-specific options passed to streamText (e.g. reasoning config) */
+  providerOptions?: Parameters<typeof streamText>[0]["providerOptions"]
 }
 
 // ---------------------------------------------------------------------------
@@ -77,6 +79,7 @@ export async function* runAgentLoop(input: AgentLoopInput): AsyncGenerator<Agent
     abortSignal: input.abort,
     temperature: input.agent.temperature,
     topP: input.agent.topP,
+    providerOptions: input.providerOptions,
     onError: (error) => {
       console.error("[agent-loop] stream error:", error)
     },

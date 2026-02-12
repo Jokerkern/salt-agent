@@ -15,7 +15,7 @@
     "@ai-sdk/google": "^2.0.0",
     "@ai-sdk/openai": "^2.0.0",
     "@ai-sdk/openai-compatible": "^2.0.28",
-    "ai": "^5.0.0",
+    "ai": "^6.0.0",
     "better-sqlite3": "^11.0.0",
     "drizzle-orm": "^0.44.0",
     "nanoid": "^5.0.9",

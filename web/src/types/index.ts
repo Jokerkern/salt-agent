@@ -22,7 +22,12 @@ export interface ToolResultBlock {
   isError?: boolean;
 }
 
-export type ContentBlock = TextBlock | ToolCallBlock | ToolResultBlock;
+export interface ReasoningBlock {
+  type: "reasoning";
+  text: string;
+}
+
+export type ContentBlock = TextBlock | ToolCallBlock | ToolResultBlock | ReasoningBlock;
 
 // ---------------------------------------------------------------------------
 // Session

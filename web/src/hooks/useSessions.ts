@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getSessions } from '../lib/api';
 import type { SessionInfo } from '../types';
 
-export function useSessions(autoRefresh = true, refreshKey = 0) {
+export function useSessions(autoRefresh = false, refreshKey = 0) {
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export function useSessions(autoRefresh = true, refreshKey = 0) {
     fetchSessions();
 
     if (autoRefresh) {
-      const interval = setInterval(fetchSessions, 10000);
+      const interval = setInterval(fetchSessions, 30000);
       return () => clearInterval(interval);
     }
   }, [autoRefresh, refreshKey]);

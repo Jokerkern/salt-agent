@@ -9,11 +9,16 @@ import type { MessageInfo, ContentBlock, AgentEvent } from '../types';
  */
 interface StreamingAssistant {
   currentText: string;
+  currentReasoning: string;
   blocks: ContentBlock[];
 }
 
 function buildMessageFromStream(s: StreamingAssistant): MessageInfo {
   const blocks: ContentBlock[] = [...s.blocks];
+  // Append current streaming reasoning (if any) as a reasoning block
+  if (s.currentReasoning) {
+    blocks.push({ type: 'reasoning', text: s.currentReasoning });
+  }
   // Append current streaming text (if any) as a text block
   if (s.currentText) {
     blocks.push({ type: 'text', text: s.currentText });
@@ -118,13 +123,36 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
       eventSourceRef.current = es;
 
       // Initialize streaming state
-      streamingRef.current = { currentText: '', blocks: [] };
+      streamingRef.current = { currentText: '', currentReasoning: '', blocks: [] };
 
       // --- Event handlers ---
 
       const handleTextStart = () => {
         if (streamingRef.current) {
           streamingRef.current.currentText = '';
+        }
+      };
+
+      const handleReasoningStart = () => {
+        if (streamingRef.current) {
+          streamingRef.current.currentReasoning = '';
+        }
+      };
+
+      const handleReasoningDelta = (e: MessageEvent) => {
+        const event: AgentEvent = JSON.parse(e.data);
+        if (event.type === 'reasoning-delta' && streamingRef.current) {
+          streamingRef.current.currentReasoning += event.delta;
+          updateStreamingMessage();
+        }
+      };
+
+      const handleReasoningEnd = (e: MessageEvent) => {
+        const event: AgentEvent = JSON.parse(e.data);
+        if (event.type === 'reasoning-end' && streamingRef.current) {
+          streamingRef.current.blocks.push({ type: 'reasoning', text: event.text });
+          streamingRef.current.currentReasoning = '';
+          updateStreamingMessage();
         }
       };
 
@@ -244,6 +272,9 @@ export function useChat(sessionId: string | null, onSessionCreated?: (id: string
       es.addEventListener('text-start', handleTextStart);
       es.addEventListener('text-delta', handleTextDelta);
       es.addEventListener('text-end', handleTextEnd);
+      es.addEventListener('reasoning-start', handleReasoningStart);
+      es.addEventListener('reasoning-delta', handleReasoningDelta);
+      es.addEventListener('reasoning-end', handleReasoningEnd);
       es.addEventListener('tool-call-start', handleToolCallStart);
       es.addEventListener('tool-call-args', handleToolCallArgs);
       es.addEventListener('tool-result', handleToolResult);

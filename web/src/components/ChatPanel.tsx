@@ -118,8 +118,16 @@ function IconMoon() {
 function IconSettings() {
   return (
     <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c-.007.378-.138.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
+function IconBrain() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
     </svg>
   );
 }
@@ -207,9 +215,9 @@ export function ChatPanel({ sessionId, onSessionCreated, sidebarOpen, onToggleSi
             <p className="text-text-muted text-sm">选择已有会话或新建会话开始对话</p>
           </div>
         </div>
-      </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div className="flex-1 flex flex-col h-full">
@@ -446,8 +454,10 @@ function AssistantBubble({
 
   // Separate content blocks by type
   const textBlocks = message.content.filter((b): b is { type: 'text'; text: string } => b.type === 'text');
+  const reasoningBlocks = message.content.filter((b): b is { type: 'reasoning'; text: string } => b.type === 'reasoning');
   const toolCallBlocks = message.content.filter((b): b is ToolCallBlock => b.type === 'tool-call');
   const toolResultBlocks = message.content.filter((b): b is ToolResultBlock => b.type === 'tool-result');
+  const reasoningContent = reasoningBlocks.map((b) => b.text).join('\n');
   const textContent = textBlocks.map((b) => b.text).join('\n');
 
   const handleCopy = useCallback(() => {
@@ -483,6 +493,13 @@ function AssistantBubble({
                   />
                 );
               })}
+            </div>
+          )}
+
+          {/* Reasoning */}
+          {reasoningContent && (
+            <div className="mb-3">
+              <ReasoningCard content={reasoningContent} isStreaming={isLast && isStreaming} />
             </div>
           )}
 
@@ -737,6 +754,37 @@ function ToolCallCard({
                 </pre>
               </div>
             )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Reasoning Card ────────────────────────────────────────────────────────
+
+function ReasoningCard({ content, isStreaming }: { content: string; isStreaming: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="border border-surface-4/50 rounded-xl overflow-hidden bg-surface-2/50">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left text-text-muted hover:text-text-secondary transition-colors"
+      >
+        <IconBrain />
+        <span className="text-xs font-medium flex-1">推理过程</span>
+        {isStreaming && (
+          <div className="w-3 h-3 border-[1.5px] border-current border-t-transparent rounded-full animate-spin flex-shrink-0" />
+        )}
+        <IconChevron open={expanded} />
+      </button>
+
+      {expanded && (
+        <div className="px-3 pb-3 animate-fade-in">
+          <div className="text-2xs uppercase tracking-wider opacity-40 mb-1 font-medium">思考内容</div>
+          <div className={`text-sm leading-relaxed text-text-secondary whitespace-pre-wrap ${isStreaming ? 'typing-cursor' : ''}`}>
+            {content}
           </div>
         </div>
       )}

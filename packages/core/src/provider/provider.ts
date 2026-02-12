@@ -1,6 +1,7 @@
 import { createOpenAI } from "@ai-sdk/openai"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import type { LanguageModel } from "ai"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,15 +107,15 @@ const BUILTIN_PROVIDERS: Record<string, ProviderInfo> = {
     description: "Any OpenAI-compatible API (Ollama, vLLM, LM Studio, etc.)",
     factory: (opts) => {
       if (!opts.baseUrl) throw new Error("baseUrl is required for openai-compatible provider")
-      // Use createOpenAI with custom baseURL.
-      // IMPORTANT: Use provider.chat() instead of provider() because third-party
-      // endpoints only support /chat/completions, not OpenAI's new /responses API.
-      const provider = createOpenAI({
+      // Use @ai-sdk/openai-compatible which properly handles system role
+      // instead of developer role for old-style OpenAI-compatible endpoints
+      const provider = createOpenAICompatible({
         apiKey: opts.apiKey || "dummy",
         baseURL: opts.baseUrl,
+        name: "custom",
       })
       return {
-        languageModel: (modelId: string) => provider.chat(modelId),
+        languageModel: (modelId: string) => provider(modelId),
       }
     },
   },
