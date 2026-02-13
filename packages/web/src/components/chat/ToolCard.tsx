@@ -43,6 +43,8 @@ const TOOL_ICONS: Record<string, React.ReactNode> = {
   task: <BranchesOutlined />,
   lsp: <CodeOutlined />,
   question: <QuestionCircleOutlined />,
+  plan_enter: <QuestionCircleOutlined />,
+  plan_exit: <QuestionCircleOutlined />,
 }
 
 function getToolTitle(part: ToolPart): string {
@@ -77,6 +79,10 @@ function getToolTitle(part: ToolPart): string {
       if (questions?.length) return `询问: ${questions[0].question}`
       return "询问用户"
     }
+    case "plan_enter":
+      return "切换到计划模式"
+    case "plan_exit":
+      return "退出计划模式"
     default:
       return part.tool
   }
@@ -118,7 +124,13 @@ interface QuestionInfo {
 function QuestionBody({ part }: { part: ToolPart }) {
   const { state } = part
   const { replyQuestion, rejectQuestion } = useSession()
-  const questions = (state.input.questions ?? []) as QuestionInfo[]
+  const questionRequest = useQuestionRequest(part)
+  // 优先从工具参数获取问题内容（question 工具），否则从 Bus 事件获取（plan_enter/plan_exit 等）
+  const questions = (
+    (state.input.questions as QuestionInfo[] | undefined)?.length
+      ? state.input.questions
+      : questionRequest?.questions ?? []
+  ) as QuestionInfo[]
   const [selected, setSelected] = useState<Record<number, string[]>>({})
 
   // 已完成：显示结果
@@ -172,8 +184,6 @@ function QuestionBody({ part }: { part: ToolPart }) {
   }
 
   // 等待中 / 运行中：显示可交互的问题列表
-  // 找到对应的 question request
-  const questionRequest = useQuestionRequest(part)
 
   return (
     <Flex vertical gap={12} style={{ padding: "4px 0" }}>
@@ -327,12 +337,14 @@ export function ToolCard({ part }: ToolCardProps) {
       ? ((state.time.end - state.time.start) / 1000).toFixed(1) + "s"
       : undefined
 
-  const isQuestion = part.tool === "question"
+  // 任何使用 Question.ask() 的工具都应显示问答 UI（question、plan_enter、plan_exit 等）
+  const questionReq = useQuestionRequest(part)
+  const isQuestion = part.tool === "question" || !!questionReq
 
-  // Auto-expand when waiting for permission
+  // Auto-expand when waiting for permission or question
   const activeKey = waitingPermission
     ? [part.id]
-    : isQuestion && state.status === "running"
+    : isQuestion && (state.status === "running" || state.status === "pending")
       ? [part.id]
       : undefined
 
