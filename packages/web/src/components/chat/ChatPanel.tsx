@@ -1,10 +1,9 @@
 import { useState, useCallback, useMemo } from "react"
 import { Bubble, Sender } from "@ant-design/x"
-import { Flex, Typography, Alert, Button, Space, Tag } from "antd"
+import { Flex, Typography, Alert, Space, Tag } from "antd"
 import {
   UserOutlined,
   RobotOutlined,
-  StopOutlined,
 } from "@ant-design/icons"
 import type { BubbleListProps, BubbleItemType } from "@ant-design/x/es/bubble/interface"
 import { useSession } from "../../context/session"
@@ -214,26 +213,16 @@ export function ChatPanel() {
 
       {/* Input */}
       <div style={{ padding: "12px 24px", borderTop: "1px solid var(--ant-color-border)" }}>
-        <Flex gap={8} align="end" style={{ maxWidth: 720, margin: "0 auto" }}>
-          <Sender
-            value={input}
-            onChange={setInput}
-            onSubmit={handleSend}
-            loading={isStreaming}
-            placeholder={state.activeID ? "输入消息...（按 Enter 发送）" : "请先选择一个会话"}
-            disabled={!state.activeID}
-            style={{ flex: 1 }}
-          />
-          {isStreaming && (
-            <Button
-              danger
-              icon={<StopOutlined />}
-              onClick={handleAbort}
-            >
-              停止
-            </Button>
-          )}
-        </Flex>
+        <Sender
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSend}
+          onCancel={handleAbort}
+          loading={isStreaming}
+          placeholder={state.activeID ? "输入消息...（按 Enter 发送）" : "请先选择一个会话"}
+          disabled={!state.activeID}
+          style={{ maxWidth: 720, margin: "0 auto" }}
+        />
       </div>
     </Flex>
   )
