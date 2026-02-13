@@ -25,6 +25,7 @@ export namespace ProviderTransform {
     openai: "openai",
     google: "google",
     "openai-compatible": "openaiCompatible",
+    "kimi-for-coding": "anthropic",
   }
 
   // ---------------------------------------------------------------------------

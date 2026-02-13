@@ -261,6 +261,42 @@ export namespace Models {
         },
       },
     },
+
+    "kimi-for-coding": {
+      id: "kimi-for-coding",
+      name: "Kimi For Coding",
+      npm: "@ai-sdk/anthropic",
+      api: "https://api.kimi.com/coding/v1",
+      env: ["KIMI_API_KEY"],
+      models: {
+        "k2p5": {
+          id: "k2p5",
+          name: "Kimi K2.5",
+          family: "kimi-thinking",
+          release_date: "2026-01",
+          attachment: false,
+          reasoning: true,
+          temperature: true,
+          tool_call: true,
+          cost: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+          limit: { context: 262144, output: 32768 },
+          modalities: { input: ["text", "image", "video"], output: ["text"] },
+        },
+        "kimi-k2-thinking": {
+          id: "kimi-k2-thinking",
+          name: "Kimi K2 Thinking",
+          family: "kimi-thinking",
+          release_date: "2025-11",
+          attachment: false,
+          reasoning: true,
+          temperature: true,
+          tool_call: true,
+          cost: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+          limit: { context: 262144, output: 32768 },
+          modalities: { input: ["text"], output: ["text"] },
+        },
+      },
+    },
   }
 
   // ---------------------------------------------------------------------------

@@ -125,6 +125,7 @@ export namespace Provider {
     openai: "https://api.openai.com/v1",
     anthropic: "https://api.anthropic.com",
     google: "https://generativelanguage.googleapis.com/v1beta",
+    "kimi-for-coding": "https://api.kimi.com/coding/v1",
   }
 
   // ---------------------------------------------------------------------------
