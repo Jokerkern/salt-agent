@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback } from "react"
 import { Bubble, Sender } from "@ant-design/x"
 import { Flex, Typography, Alert, Space, Tag } from "antd"
 import {
@@ -42,13 +42,8 @@ export function ChatPanel() {
   const { state, sendMessage, abortSession } = useSession()
   const [input, setInput] = useState("")
 
-  const isStreaming = useMemo(
-    () =>
-      state.messages.some(
-        (m) => m.info.role === "assistant" && !(m.info as MessageAssistant).finish,
-      ),
-    [state.messages],
-  )
+  const sessionStatus = state.activeID ? state.status[state.activeID] : undefined
+  const isBusy = sessionStatus?.type === "busy" || sessionStatus?.type === "retry"
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -104,7 +99,7 @@ export function ChatPanel() {
       const toolParts = parts.filter((p): p is ToolPart => p.type === "tool")
       const textParts = parts.filter((p) => p.type === "text" && !("ignored" in p && p.ignored))
       const reasoningParts = parts.filter((p) => p.type === "reasoning")
-      const msgStreaming = !assistantInfo.finish
+      const msgStreaming = isBusy && !assistantInfo.finish
 
       // Tool calls
       for (const tp of toolParts) {
@@ -218,7 +213,7 @@ export function ChatPanel() {
           onChange={setInput}
           onSubmit={handleSend}
           onCancel={handleAbort}
-          loading={isStreaming}
+          loading={isBusy}
           placeholder={state.activeID ? "输入消息...（按 Enter 发送）" : "请先选择一个会话"}
           disabled={!state.activeID}
           style={{ maxWidth: 720, margin: "0 auto" }}

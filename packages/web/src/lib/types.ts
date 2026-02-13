@@ -279,6 +279,15 @@ export type AuthInfo =
   | { type: "oauth"; refresh: string; access: string; expires: number; accountId?: string }
 
 // ---------------------------------------------------------------------------
+// Session Status
+// ---------------------------------------------------------------------------
+
+export type SessionStatusInfo =
+  | { type: "idle" }
+  | { type: "busy" }
+  | { type: "retry"; attempt: number; message: string; next: number }
+
+// ---------------------------------------------------------------------------
 // SSE Events
 // ---------------------------------------------------------------------------
 
@@ -289,6 +298,7 @@ export type SSEEvent =
   | { type: "session.updated"; properties: { info: SessionInfo } }
   | { type: "session.deleted"; properties: { info: SessionInfo } }
   | { type: "session.error"; properties: { sessionID: string; error: unknown } }
+  | { type: "session.status"; properties: { sessionID: string; status: SessionStatusInfo } }
   | { type: "message.updated"; properties: { info: MessageInfo } }
   | { type: "message.removed"; properties: { sessionID: string; messageID: string } }
   | { type: "message.part.updated"; properties: { part: MessagePart; delta?: string } }

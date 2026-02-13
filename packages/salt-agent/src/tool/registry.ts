@@ -1,5 +1,5 @@
 import { QuestionTool } from "./question.js"
-import { BashTool } from "./bash.js"
+import { ShellTools } from "./bash.js"
 import { EditTool } from "./edit.js"
 import { GlobTool } from "./glob.js"
 import { GrepTool } from "./grep.js"
@@ -40,7 +40,7 @@ export namespace ToolRegistry {
     return [
       InvalidTool,
       QuestionTool,
-      BashTool,
+      ...ShellTools,
       ReadTool,
       GlobTool,
       GrepTool,

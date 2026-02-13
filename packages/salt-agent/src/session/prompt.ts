@@ -11,6 +11,7 @@ import { Permission } from "../permission/permission.js"
 import { Workspace } from "../workspace/workspace.js"
 import { Bus } from "../bus/bus.js"
 import { SessionProcessor } from "./processor.js"
+import { SessionStatus } from "./status.js"
 import { LLM } from "./llm.js"
 import { Tool } from "../tool/tool.js"
 import { fn } from "../util/fn.js"
@@ -61,9 +62,13 @@ export namespace SessionPrompt {
   export function cancel(sessionID: string) {
     log.info("取消", { sessionID })
     const match = state[sessionID]
-    if (!match) return
+    if (!match) {
+      SessionStatus.set(sessionID, { type: "idle" })
+      return
+    }
     match.abort.abort()
     delete state[sessionID]
+    SessionStatus.set(sessionID, { type: "idle" })
   }
 
   // ---------------------------------------------------------------------------
@@ -151,6 +156,7 @@ export namespace SessionPrompt {
       const session = await Session.get(sessionID)
 
       while (true) {
+        SessionStatus.set(sessionID, { type: "busy" })
         log.info("循环", { step, sessionID })
         if (abort.aborted) break
 

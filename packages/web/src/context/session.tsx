@@ -11,6 +11,7 @@ import { api } from "../lib/api"
 import { useSSE } from "./sse"
 import type {
   SessionInfo,
+  SessionStatusInfo,
   MessageWithParts,
   MessageInfo,
   MessagePart,
@@ -33,6 +34,8 @@ export interface SessionState {
   messages: MessageWithParts[]
   /** Parts indexed by messageID for quick lookup & SSE updates */
   parts: Record<string, MessagePart[]>
+  /** Session status map (busy / idle / retry) */
+  status: Record<string, SessionStatusInfo>
   /** Pending permission requests for active session */
   permissions: PermissionRequest[]
   /** Pending question requests for active session */
@@ -46,6 +49,7 @@ const initial: SessionState = {
   activeID: null,
   messages: [],
   parts: {},
+  status: {},
   permissions: [],
   questions: [],
   loading: false,
@@ -69,6 +73,7 @@ type Action =
   | { type: "PART_REMOVED"; sessionID: string; messageID: string; partID: string }
   | { type: "PERMISSION_ASKED"; request: PermissionRequest }
   | { type: "PERMISSION_REPLIED"; sessionID: string; requestID: string }
+  | { type: "SESSION_STATUS"; sessionID: string; status: SessionStatusInfo }
   | { type: "QUESTION_ASKED"; request: QuestionRequest }
   | { type: "QUESTION_ANSWERED"; id: string; sessionID: string }
 
@@ -107,6 +112,17 @@ function reducer(state: SessionState, action: Action): SessionState {
         messages: state.activeID === action.info.id ? [] : state.messages,
         parts: state.activeID === action.info.id ? {} : state.parts,
       }
+
+    case "SESSION_STATUS": {
+      if (action.status.type === "idle") {
+        const { [action.sessionID]: _, ...rest } = state.status
+        return { ...state, status: rest }
+      }
+      return {
+        ...state,
+        status: { ...state.status, [action.sessionID]: action.status },
+      }
+    }
 
     case "SET_ACTIVE":
       return {
@@ -261,6 +277,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           break
         case "session.deleted":
           dispatch({ type: "SESSION_DELETED", info: event.properties.info })
+          break
+        case "session.status":
+          dispatch({
+            type: "SESSION_STATUS",
+            sessionID: event.properties.sessionID,
+            status: event.properties.status,
+          })
           break
         case "message.updated":
           dispatch({ type: "MESSAGE_UPDATED", info: event.properties.info })

@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { stream } from "hono/streaming"
 import { Session } from "../../session/session.js"
+import { SessionStatus } from "../../session/status.js"
 import { MessageV2 } from "../../session/message.js"
 import { SessionPrompt } from "../../session/prompt.js"
 import { lazy } from "../../util/lazy.js"
@@ -85,6 +86,13 @@ export const SessionRoutes = lazy(() =>
       )
 
       return c.json(updatedSession)
+    })
+
+    // -----------------------------------------------------------------------
+    // Session status (busy / idle / retry)
+    // -----------------------------------------------------------------------
+    .get("/status", async (c) => {
+      return c.json(SessionStatus.list())
     })
 
     // -----------------------------------------------------------------------

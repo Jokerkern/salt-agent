@@ -2,6 +2,7 @@ import { MessageV2 } from "./message.js"
 import { Log } from "../util/log.js"
 import { Identifier } from "../id/id.js"
 import { Session } from "./session.js"
+import { SessionStatus } from "./status.js"
 import { Bus } from "../bus/bus.js"
 import { Permission } from "../permission/permission.js"
 import { LLM } from "./llm.js"
@@ -304,6 +305,12 @@ export namespace SessionProcessor {
               attempt++
               const delay = retryDelay(attempt)
               log.info("重试中", { attempt, delay, reason: retry })
+              SessionStatus.set(input.sessionID, {
+                type: "retry",
+                attempt,
+                message: retry,
+                next: Date.now() + delay,
+              })
               await retrySleep(delay, input.abort).catch(() => {})
               continue
             }
@@ -312,6 +319,7 @@ export namespace SessionProcessor {
               sessionID: input.assistantMessage.sessionID,
               error: input.assistantMessage.error,
             })
+            SessionStatus.set(input.sessionID, { type: "idle" })
           }
 
           // 将未完成的工具 Part 标记为错误
@@ -332,6 +340,9 @@ export namespace SessionProcessor {
                 } as MessageV2.ToolStateError,
               })
             }
+          }
+          if (!input.assistantMessage.finish) {
+            input.assistantMessage.finish = input.assistantMessage.error ? "error" : "stop"
           }
           input.assistantMessage.time.completed = Date.now()
           await Session.updateMessage(input.assistantMessage)
