@@ -323,8 +323,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const loadMessages = useCallback(async (sessionID: string) => {
     const messages = await api.session.messages(sessionID)
-    // API returns newest first, we want oldest first
-    messages.reverse()
     dispatch({ type: "SET_MESSAGES", messages })
   }, [])
 
