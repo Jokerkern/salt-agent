@@ -13,6 +13,7 @@ import { SkillTool } from "./skill.js"
 import { WebSearchTool } from "./websearch.js"
 import { ListTool } from "./ls.js"
 import { ApplyPatchTool } from "./apply-patch.js"
+import { DeleteTool } from "./delete.js"
 import { PlanEnterTool, PlanExitTool } from "./plan.js"
 import { Tool } from "./tool.js"
 import { Log } from "../util/log.js"
@@ -45,6 +46,7 @@ export namespace ToolRegistry {
       GrepTool,
       EditTool,
       WriteTool,
+      DeleteTool,
       ListTool,
       TaskTool,
       WebFetchTool,

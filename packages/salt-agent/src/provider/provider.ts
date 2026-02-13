@@ -133,6 +133,7 @@ export namespace Provider {
 
   interface State {
     providers: Record<string, Info>
+    allProviders: Record<string, Info>
     sdkCache: Map<string, SDK>
     languageCache: Map<string, LanguageModelV2>
   }
@@ -190,7 +191,10 @@ export namespace Provider {
       }
     }
 
-    // 4. Remove providers without API keys (no models available)
+    // 4. Keep a copy of all providers (including those without keys) for UI listing
+    const allProviders = { ...providers }
+
+    // 5. Remove providers without API keys from active set (no models available)
     for (const [id, provider] of Object.entries(providers)) {
       if (!provider.key && Object.keys(provider.models).length > 0) {
         log.info("skipping provider (no API key)", { provider: id, env: provider.env })
@@ -200,11 +204,12 @@ export namespace Provider {
 
     log.info("providers loaded", {
       available: Object.keys(providers),
-      total: Object.keys(providers).length,
+      total: Object.keys(allProviders).length,
     })
 
     return {
       providers,
+      allProviders,
       sdkCache: new Map(),
       languageCache: new Map(),
     }
@@ -459,6 +464,12 @@ export namespace Provider {
   export async function list(): Promise<Record<string, Info>> {
     const s = await state()
     return s.providers
+  }
+
+  /** Return all known providers, including those without API keys. */
+  export async function listAll(): Promise<Record<string, Info>> {
+    const s = await state()
+    return s.allProviders
   }
 
   /** Get a single provider by ID. */

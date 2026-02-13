@@ -8,6 +8,10 @@
     "packages/*"
   ],
   "scripts": {
+    "start": "npm run start -w @salt-agent/salt-agent",
+    "dev": "npm run dev -w @salt-agent/salt-agent",
+    "dev:web": "npm run dev -w @salt-agent/web",
+    "build:web": "npm run build -w @salt-agent/web",
     "typecheck": "npm run typecheck -w @salt-agent/salt-agent"
   },
   "devDependencies": {

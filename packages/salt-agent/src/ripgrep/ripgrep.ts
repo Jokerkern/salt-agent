@@ -1,34 +1,13 @@
-import { spawn, execSync } from "child_process"
+import { spawn } from "child_process"
 import path from "path"
+import { rgPath } from "@vscode/ripgrep"
 
 /**
  * Ripgrep binary resolution and helpers for grep/glob/ls tools.
  */
 export namespace Ripgrep {
-  let _path: string | undefined
-
-  export async function filepath(): Promise<string> {
-    if (_path) return _path
-
-    // Try @vscode/ripgrep first (optional dependency)
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const mod = await import(/* webpackIgnore: true */ "@vscode/ripgrep" as string)
-      _path = (mod as Record<string, any>).rgPath as string | undefined
-      if (_path) return _path
-    } catch {}
-
-    // Fall back to rg in PATH
-    try {
-      const cmd = process.platform === "win32" ? "where rg" : "which rg"
-      const result = execSync(cmd, { encoding: "utf-8" })
-      _path = result.trim().split("\n")[0]!.trim()
-      return _path
-    } catch {}
-
-    throw new Error(
-      "ripgrep (rg) not found. Install via: npm install @vscode/ripgrep, or install rg system-wide.",
-    )
+  export function filepath(): string {
+    return rgPath
   }
 
   /**
@@ -42,7 +21,7 @@ export namespace Ripgrep {
     hidden?: boolean
     signal?: AbortSignal
   }): AsyncGenerator<string> {
-    const rg = await filepath()
+    const rg = filepath()
     const args = ["--files"]
     if (options.hidden !== false) args.push("--hidden")
     if (options.follow) args.push("--follow")

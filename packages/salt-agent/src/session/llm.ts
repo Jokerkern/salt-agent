@@ -84,7 +84,11 @@ export namespace LLM {
       ? ProviderTransform.smallOptions(input.model)
       : ProviderTransform.options(input.model)
 
-    const maxOutputTokens = ProviderTransform.maxOutputTokens(input.model)
+    // openai-compatible providers 可能不支持 max_tokens（新模型用 max_completion_tokens）
+    // 不传 maxOutputTokens，让 API 使用默认值
+    const maxOutputTokens = input.model.api.npm === "@ai-sdk/openai-compatible"
+      ? undefined
+      : ProviderTransform.maxOutputTokens(input.model)
 
     // 过滤被禁用的工具
     const tools = { ...input.tools }

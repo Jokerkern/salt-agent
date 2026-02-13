@@ -342,9 +342,10 @@ export namespace SessionPrompt {
     )) {
       // 使用 as any 绕过 ai SDK tool() 的严格重载解析
       // 工具返回 { title, metadata, output, attachments? }，ai SDK 运行时可正确处理
+      // 注意：AI SDK v6 使用 inputSchema 替代了 parameters
       tools[item.id] = (tool as any)({
         description: item.description,
-        parameters: item.parameters,
+        inputSchema: item.parameters,
         execute: async (args: any, options: ToolCallOptions) => {
           const ctx = context(args, options)
           return await item.execute(args, ctx)

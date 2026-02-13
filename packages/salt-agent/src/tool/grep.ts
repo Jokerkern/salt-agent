@@ -58,7 +58,7 @@ export const GrepTool = Tool.define("grep", {
       : path.resolve(Workspace.directory, searchPath)
     await assertExternalDirectory(ctx, searchPath, { kind: "directory" })
 
-    const rgPath = await Ripgrep.filepath()
+    const rgPath = Ripgrep.filepath()
     const args = [
       "-nH",
       "--hidden",

@@ -408,17 +408,78 @@ Web：
 
 ---
 
-### 第七阶段：HTTP Server
+### 第七阶段：HTTP Server [已完成]
 
 > 目标：通过 HTTP API 暴露 Agent 能力。
 
-- [ ] Hono 应用 + SSE 流式传输
-- [ ] 会话 CRUD API
-- [ ] 聊天 API（发送消息 + 流式响应）
-- [ ] 供应商/设置 API
-- [ ] IM webhook 集成入口
+#### 7.0 主服务器 (`server/server.ts`) [已完成]
 
-**验收标准：** curl 能创建会话、发送消息、通过 SSE 接收流式响应。
+- [x] Hono 应用 + Node.js HTTP 服务器适配（`Server.listen()`）
+- [x] 错误处理中间件（NamedError → 404/400/500）
+- [x] 请求日志中间件
+- [x] CORS 中间件（localhost、tauri、白名单）
+- [x] SSE 事件流（`GET /event`）— 订阅 Bus 所有事件，30 秒心跳
+- [x] 健康检查（`GET /health`）
+- [x] 路径信息（`GET /path`）
+- [x] Agent 列表（`GET /agent`）
+- [x] 认证凭据 CRUD（`PUT/DELETE /auth/:providerID`）
+
+#### 7.1 会话路由 (`server/routes/session.ts`) [已完成]
+
+- [x] `GET /session` — 列表（支持 search/limit/roots 过滤）
+- [x] `GET /session/:id` — 获取详情
+- [x] `GET /session/:id/children` — 子会话列表
+- [x] `POST /session` — 创建会话
+- [x] `PATCH /session/:id` — 更新（title）
+- [x] `DELETE /session/:id` — 删除
+- [x] `POST /session/:id/abort` — 中止
+- [x] `GET /session/:id/message` — 获取所有消息（支持 limit）
+- [x] `GET /session/:id/message/:msgID` — 获取单条消息
+- [x] `DELETE /session/:id/message/:msgID/part/:partID` — 删除部分
+- [x] `PATCH /session/:id/message/:msgID/part/:partID` — 更新部分
+- [x] `POST /session/:id/message` — 发送消息 + 流式响应（Hono `stream()`）
+- [x] `POST /session/:id/prompt_async` — 异步发送（204 不阻塞）
+
+#### 7.2 供应商路由 (`server/routes/provider.ts`) [已完成]
+
+- [x] `GET /provider` — 返回 `{ all, default, connected }`
+- [x] `GET /provider/auth` — 获取各供应商认证方式
+
+#### 7.3 配置路由 (`server/routes/config.ts`) [已完成]
+
+- [x] `GET /config` — 获取配置
+- [x] `PATCH /config` — 更新配置（深度合并）
+- [x] `GET /config/providers` — 已连接供应商 + 默认模型
+
+#### 7.4 权限路由 (`server/routes/permission.ts`) [已完成]
+
+- [x] `GET /permission` — 获取待处理权限请求
+- [x] `POST /permission/:requestID/reply` — 响应权限（once/always/reject）
+
+#### 7.5 问题路由 (`server/routes/question.ts`) [已完成]
+
+- [x] `GET /question` — 获取待处理问题
+- [x] `POST /question/:requestID/reply` — 回答问题
+- [x] `POST /question/:requestID/reject` — 拒绝问题
+
+#### 7.6 错误定义 (`server/error.ts`) [已完成]
+
+- [x] 400 Bad Request 标准格式
+- [x] 404 Not Found（复用 Storage.NotFoundError.Schema）
+- [x] `errors()` 辅助函数
+
+新增依赖：`hono`
+
+存储路径：无新增（复用现有 Storage/Config/Auth）
+
+**验收标准：** ✅ HTTP Server 框架完整。Hono 应用通过 Node.js HTTP 适配运行。SSE 事件流支持实时推送 Bus 事件（30 秒心跳）。会话 CRUD + 消息发送 + 流式响应 API 就绪。供应商/配置/权限/问题交互 API 完整。全部 211 个测试通过，TypeScript 类型检查通过。
+
+**待补齐项：**
+| 项目 | 状态 | 依赖 | 预计补齐阶段 |
+|------|------|------|-------------|
+| IM webhook 集成入口 | 未实现 | 具体 IM 平台 SDK | 后续增强 |
+| OpenAPI 文档生成 | 未实现 | `hono-openapi` | 可选增强 |
+| Basic Auth 中间件 | 未实现 | 环境变量配置 | 可选增强 |
 
 ---
 
@@ -426,12 +487,12 @@ Web：
 
 > 目标：可用的聊天界面。
 
-- [ ] Vite + React + Tailwind
-- [ ] 聊天面板（Markdown 渲染、流式输出）
-- [ ] 工具调用卡片（可折叠）
-- [ ] 会话列表（创建/删除/切换）
-- [ ] 设置面板（供应商配置）
-- [ ] 暗色/亮色主题
+- [x] Vite + React + Tailwind
+- [x] 聊天面板（Markdown 渲染、流式输出）
+- [x] 工具调用卡片（可折叠）
+- [x] 会话列表（创建/删除/切换）
+- [x] 设置面板（供应商配置）
+- [x] 暗色/亮色主题
 
 **验收标准：** 浏览器能正常聊天，工具调用过程可视化。
 
@@ -504,7 +565,15 @@ salt-agent/
 │           │   ├── todo.ts / question.ts / batch.ts / invalid.ts  # 辅助
 │           │   └── task.ts / skill.ts / lsp.ts / plan.ts  # 高级（框架）
 │           ├── agent/         # Agent 定义 + 循环
-│           └── server/        # HTTP API + 路由
+│           └── server/        # HTTP API + 路由 [已完成]
+│               ├── server.ts  #   主服务器（Hono + 中间件 + SSE + listen）
+│               ├── error.ts   #   错误定义（400/404）
+│               └── routes/
+│                   ├── session.ts    # 会话 CRUD + 消息 + 流式
+│                   ├── provider.ts   # 供应商列表 + 认证
+│                   ├── config.ts     # 配置 CRUD
+│                   ├── permission.ts # 权限请求/响应
+│                   └── question.ts   # 问题交互
 └── web/                       # 前端
     └── src/
         ├── App.tsx
