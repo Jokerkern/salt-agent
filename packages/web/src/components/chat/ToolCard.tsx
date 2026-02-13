@@ -9,6 +9,7 @@ import {
   FileTextOutlined,
   FileAddOutlined,
   EditOutlined,
+  DeleteOutlined,
   SearchOutlined,
   FolderOutlined,
   GlobalOutlined,
@@ -16,6 +17,7 @@ import {
   BranchesOutlined,
   UnorderedListOutlined,
   QuestionCircleOutlined,
+  LockOutlined,
 } from "@ant-design/icons"
 import { useSession } from "../../context/session"
 import type { ToolPart } from "../../lib/types"
@@ -28,6 +30,7 @@ const TOOL_ICONS: Record<string, React.ReactNode> = {
   read: <FileTextOutlined />,
   write: <FileAddOutlined />,
   edit: <EditOutlined />,
+  delete: <DeleteOutlined />,
   apply_patch: <EditOutlined />,
   bash: <CodeSandboxOutlined />,
   grep: <SearchOutlined />,
@@ -55,6 +58,8 @@ function getToolTitle(part: ToolPart): string {
       return `写入 ${input.path ?? ""}`
     case "edit":
       return `编辑 ${input.path ?? ""}`
+    case "delete":
+      return `删除 ${input.filePath ?? ""}`
     case "bash":
       return `$ ${typeof input.command === "string" ? input.command.slice(0, 80) : "..."}`
     case "grep":
@@ -77,7 +82,10 @@ function getToolTitle(part: ToolPart): string {
   }
 }
 
-function StatusTag({ status }: { status: string }) {
+function StatusTag({ status, waitingPermission }: { status: string; waitingPermission?: boolean }) {
+  if (waitingPermission) {
+    return <Tag icon={<LockOutlined />} color="warning">等待批准</Tag>
+  }
   switch (status) {
     case "pending":
       return <Tag icon={<ClockCircleOutlined />} color="default">等待中</Tag>
@@ -249,11 +257,70 @@ function useQuestionRequest(part: ToolPart) {
 // 通用 ToolCard
 // ---------------------------------------------------------------------------
 
+/** 从 session state 里找到与此 tool part 匹配的 permission request */
+function usePermissionRequest(part: ToolPart) {
+  const { state } = useSession()
+  if (part.state.status !== "running") return undefined
+  return state.permissions.find(
+    (p) => p.tool?.messageID === part.messageID && p.tool?.callID === part.callID,
+  )
+}
+
+/** 内联权限审批 */
+function PermissionBody({ part }: { part: ToolPart }) {
+  const { replyPermission } = useSession()
+  const permReq = usePermissionRequest(part)
+  if (!permReq) return null
+
+  return (
+    <Flex
+      align="center"
+      justify="space-between"
+      wrap
+      gap={8}
+      style={{
+        padding: "8px 12px",
+        borderRadius: 6,
+        background: "var(--ant-color-warning-bg)",
+        border: "1px solid var(--ant-color-warning-border)",
+      }}
+    >
+      <Space size={4}>
+        <LockOutlined style={{ color: "var(--ant-color-warning)" }} />
+        <Typography.Text style={{ fontSize: 12 }}>
+          需要权限: <Tag color="warning" style={{ marginInlineEnd: 0 }}>{permReq.permission}</Tag>
+        </Typography.Text>
+        {permReq.patterns.length > 0 && (
+          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+            ({permReq.patterns.join(", ")})
+          </Typography.Text>
+        )}
+      </Space>
+      <Space size={6}>
+        <Button size="small" type="primary" onClick={() => replyPermission(permReq.id, "once")}>
+          允许一次
+        </Button>
+        {permReq.always.length > 0 && (
+          <Button size="small" onClick={() => replyPermission(permReq.id, "always")}>
+            始终允许
+          </Button>
+        )}
+        <Button size="small" danger onClick={() => replyPermission(permReq.id, "reject")}>
+          拒绝
+        </Button>
+      </Space>
+    </Flex>
+  )
+}
+
 export function ToolCard({ part }: ToolCardProps) {
   const [_expanded] = useState(false)
   const { state } = part
   const title = getToolTitle(part)
   const icon = TOOL_ICONS[part.tool] ?? <CodeOutlined />
+
+  const permReq = usePermissionRequest(part)
+  const waitingPermission = !!permReq
 
   const duration =
     (state.status === "completed" || state.status === "error") && state.time
@@ -262,11 +329,19 @@ export function ToolCard({ part }: ToolCardProps) {
 
   const isQuestion = part.tool === "question"
 
+  // Auto-expand when waiting for permission
+  const activeKey = waitingPermission
+    ? [part.id]
+    : isQuestion && state.status === "running"
+      ? [part.id]
+      : undefined
+
   return (
     <Collapse
       size="small"
       style={{ maxWidth: 600 }}
-      defaultActiveKey={isQuestion && state.status === "running" ? [part.id] : undefined}
+      defaultActiveKey={activeKey}
+      activeKey={waitingPermission ? [part.id] : undefined}
       items={[
         {
           key: part.id,
@@ -279,7 +354,7 @@ export function ToolCard({ part }: ToolCardProps) {
               >
                 {title}
               </Typography.Text>
-              <StatusTag status={state.status} />
+              <StatusTag status={state.status} waitingPermission={waitingPermission} />
               {duration && (
                 <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                   {duration}
@@ -291,8 +366,11 @@ export function ToolCard({ part }: ToolCardProps) {
             <QuestionBody part={part} />
           ) : (
             <div style={{ fontSize: 12 }}>
+              {/* Inline permission approval */}
+              {waitingPermission && <PermissionBody part={part} />}
+
               {/* Input */}
-              <Typography.Text type="secondary" strong style={{ fontSize: 11 }}>
+              <Typography.Text type="secondary" strong style={{ fontSize: 11, marginTop: waitingPermission ? 8 : 0, display: "block" }}>
                 输入
               </Typography.Text>
               <pre

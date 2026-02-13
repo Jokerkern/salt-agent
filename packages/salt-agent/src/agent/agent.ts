@@ -33,6 +33,7 @@ export namespace Agent {
     const defaults = Permission.fromConfig({
       "*": "allow",
       doom_loop: "ask",
+      delete: "ask",
       external_directory: {
         "*": "ask",
         [Truncate.GLOB]: "allow",

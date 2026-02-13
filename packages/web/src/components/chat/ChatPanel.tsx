@@ -10,7 +10,7 @@ import type { BubbleListProps, BubbleItemType } from "@ant-design/x/es/bubble/in
 import { useSession } from "../../context/session"
 import { ToolCard } from "./ToolCard"
 import { MarkdownBubble } from "./MarkdownBubble"
-import type { MessageAssistant, MessagePart, ToolPart, PermissionRequest, PermissionReply } from "../../lib/types"
+import type { MessageAssistant, MessagePart, ToolPart } from "../../lib/types"
 
 // ---------------------------------------------------------------------------
 // Role config for Bubble.List
@@ -40,7 +40,7 @@ const role: BubbleListProps["role"] = {
 // ---------------------------------------------------------------------------
 
 export function ChatPanel() {
-  const { state, sendMessage, abortSession, replyPermission } = useSession()
+  const { state, sendMessage, abortSession } = useSession()
   const [input, setInput] = useState("")
 
   const isStreaming = useMemo(
@@ -204,14 +204,6 @@ export function ChatPanel() {
   // ---------------------------------------------------------------------------
   return (
     <Flex vertical style={{ flex: 1, minWidth: 0, height: "100%" }}>
-      {/* Permission banner */}
-      {state.permissions.length > 0 && (
-        <PermissionBar
-          permission={state.permissions[0]!}
-          onReply={(reply) => replyPermission(state.permissions[0]!.id, reply)}
-        />
-      )}
-
       {/* Messages */}
       <Bubble.List
         role={role}
@@ -247,48 +239,4 @@ export function ChatPanel() {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Permission bar
-// ---------------------------------------------------------------------------
-
-function PermissionBar({
-  permission,
-  onReply,
-}: {
-  permission: PermissionRequest
-  onReply: (reply: PermissionReply) => void
-}) {
-  return (
-    <Alert
-      type="warning"
-      showIcon
-      message={
-        <Flex justify="space-between" align="center" wrap gap={8}>
-          <span>
-            需要权限: <Tag>{permission.permission}</Tag>
-            {permission.patterns.length > 0 && (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                ({permission.patterns.join(", ")})
-              </Typography.Text>
-            )}
-          </span>
-          <Space>
-            <Button size="small" type="primary" onClick={() => onReply("once")}>
-              允许一次
-            </Button>
-            {permission.always.length > 0 && (
-              <Button size="small" onClick={() => onReply("always")}>
-                始终允许
-              </Button>
-            )}
-            <Button size="small" danger onClick={() => onReply("reject")}>
-              拒绝
-            </Button>
-          </Space>
-        </Flex>
-      }
-      style={{ borderRadius: 0 }}
-    />
-  )
-}
 
