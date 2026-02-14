@@ -193,6 +193,10 @@ export namespace Session {
       part: MessageV2.ReasoningPart,
       delta: z.string(),
     }),
+    z.object({
+      part: MessageV2.ToolPart,
+      delta: z.string(),
+    }),
   ])
 
   export const updatePart = fn(UpdatePartInput, async (input) => {

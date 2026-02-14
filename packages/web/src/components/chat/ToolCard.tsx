@@ -88,13 +88,15 @@ function getToolTitle(part: ToolPart): string {
   }
 }
 
-function StatusTag({ status, waitingPermission }: { status: string; waitingPermission?: boolean }) {
+function StatusTag({ status, waitingPermission, hasRaw }: { status: string; waitingPermission?: boolean; hasRaw?: boolean }) {
   if (waitingPermission) {
     return <Tag icon={<LockOutlined />} color="warning">等待批准</Tag>
   }
   switch (status) {
     case "pending":
-      return <Tag icon={<ClockCircleOutlined />} color="default">等待中</Tag>
+      return hasRaw
+        ? <Tag icon={<LoadingOutlined spin />} color="processing">生成中</Tag>
+        : <Tag icon={<ClockCircleOutlined />} color="default">等待中</Tag>
     case "running":
       return <Tag icon={<LoadingOutlined spin />} color="processing">运行中</Tag>
     case "completed":
@@ -331,6 +333,7 @@ export function ToolCard({ part }: ToolCardProps) {
 
   const permReq = usePermissionRequest(part)
   const waitingPermission = !!permReq
+  const hasRaw = state.status === "pending" && !!state.raw
 
   const duration =
     (state.status === "completed" || state.status === "error") && state.time
@@ -341,19 +344,21 @@ export function ToolCard({ part }: ToolCardProps) {
   const questionReq = useQuestionRequest(part)
   const isQuestion = part.tool === "question" || !!questionReq
 
-  // Auto-expand when waiting for permission or question
+  // Auto-expand when waiting for permission, question, or streaming raw
   const activeKey = waitingPermission
     ? [part.id]
     : isQuestion && (state.status === "running" || state.status === "pending")
       ? [part.id]
-      : undefined
+      : hasRaw
+        ? [part.id]
+        : undefined
 
   return (
     <Collapse
       size="small"
       style={{ maxWidth: 600 }}
       defaultActiveKey={activeKey}
-      activeKey={waitingPermission ? [part.id] : undefined}
+      activeKey={waitingPermission || hasRaw ? [part.id] : undefined}
       items={[
         {
           key: part.id,
@@ -366,7 +371,7 @@ export function ToolCard({ part }: ToolCardProps) {
               >
                 {title}
               </Typography.Text>
-              <StatusTag status={state.status} waitingPermission={waitingPermission} />
+              <StatusTag status={state.status} waitingPermission={waitingPermission} hasRaw={hasRaw} />
               {duration && (
                 <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                   {duration}
@@ -381,25 +386,49 @@ export function ToolCard({ part }: ToolCardProps) {
               {/* Inline permission approval */}
               {waitingPermission && <PermissionBody part={part} />}
 
-              {/* Input */}
-              <Typography.Text type="secondary" strong style={{ fontSize: 11, marginTop: waitingPermission ? 8 : 0, display: "block" }}>
-                输入
-              </Typography.Text>
-              <pre
-                style={{
-                  fontSize: 11,
-                  maxHeight: 150,
-                  overflow: "auto",
-                  margin: "4px 0 8px",
-                  padding: 8,
-                  borderRadius: 6,
-                  background: "var(--ant-color-fill-tertiary)",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-all",
-                }}
-              >
-                {JSON.stringify(state.input, null, 2)}
-              </pre>
+              {/* Streaming raw — 工具参数正在生成 */}
+              {hasRaw && (
+                <pre
+                  style={{
+                    fontSize: 11,
+                    maxHeight: 250,
+                    overflow: "auto",
+                    margin: "4px 0 8px",
+                    padding: 8,
+                    borderRadius: 6,
+                    background: "var(--ant-color-fill-tertiary)",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-all",
+                  }}
+                >
+                  {state.raw}
+                  <span style={{ opacity: 0.5, animation: "blink 1s step-end infinite" }}>▌</span>
+                </pre>
+              )}
+
+              {/* Input — 只在非 pending-streaming 状态显示 */}
+              {!hasRaw && (
+                <>
+                  <Typography.Text type="secondary" strong style={{ fontSize: 11, marginTop: waitingPermission ? 8 : 0, display: "block" }}>
+                    输入
+                  </Typography.Text>
+                  <pre
+                    style={{
+                      fontSize: 11,
+                      maxHeight: 150,
+                      overflow: "auto",
+                      margin: "4px 0 8px",
+                      padding: 8,
+                      borderRadius: 6,
+                      background: "var(--ant-color-fill-tertiary)",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {JSON.stringify(state.input, null, 2)}
+                  </pre>
+                </>
+              )}
 
               {/* Output */}
               {state.status === "completed" && (
